@@ -3,13 +3,13 @@
 NAME	= irc
 CXX		= c++
 
-INC_DIR	= .
-SRC_DIR	= .
+INC_DIR	= inc
+SRC_DIR	= src
 OBJ_DIR	= obj
 
-INCS	= $(wildcard *.h) $(wildcard *.hpp)
-SRCS	= $(wildcard *.cpp)
-OBJS	= $(SRCS:%.cpp=$(OBJ_DIR)/%.o)
+INCS	= $(shell find $(INC_DIR) -type f -name '*.h' -o -name '*.hpp')
+SRCS	= $(shell find $(SRC_DIR) -type f -name '*.cpp')
+OBJS	= $(SRCS:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
 
 CFLAGS	= -Wall -Wextra -Werror -std=c++98
 CINC	= -I$(INC_DIR)
