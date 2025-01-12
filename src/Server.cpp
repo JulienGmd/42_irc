@@ -142,8 +142,6 @@ void Server::handle_messages(fd_set &read_fds)
 				client.nickname = params;
 			else if (command == "JOIN")
 			{
-				std::string join_message = ":" + client.nickname + " JOIN " + params + "\n";
-				send(client.socket, join_message.c_str(), join_message.size(), 0);
 				// TODO add client to channel
 			}
 			else if (command == "PART")
