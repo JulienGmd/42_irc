@@ -1,5 +1,6 @@
 #include "_config.h"
 
+#include "server.h"
 #include <cstring> // TODO C
 #include <fcntl.h> // TODO C
 #include <iostream>
@@ -7,19 +8,20 @@
 #include <unistd.h>		// TODO C
 #include <vector>
 
-void setNonBlocking(int fd)
+Server::Server()
+	: server_fd(-1), address(), clients()
 {
-	int flags = fcntl(fd, F_GETFL, 0);
-	fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+	start();
+	loop();
 }
 
-void start_server()
+Server::~Server()
 {
-	int server_fd;
-	struct sockaddr_in address;
-	fd_set read_fds;
-	std::vector<int> clients;
+	shutdown();
+}
 
+void Server::start()
+{
 	// Create server socket: This is the entry point for clients
 	server_fd = socket(ADDRESS_FAMILY, SOCKET_TYPE, 0);
 	if (server_fd < 0)
@@ -41,8 +43,13 @@ void start_server()
 	if (listen(server_fd, MAX_CONNECTING_CLIENTS) < 0)
 		throw std::runtime_error("Listen failed");
 
-	setNonBlocking(server_fd);
+	set_non_blocking(server_fd);
 	std::cout << "IRC Server started on port " << PORT << std::endl;
+}
+
+void Server::loop()
+{
+	fd_set read_fds;
 
 	while (true)
 	{
@@ -74,7 +81,7 @@ void start_server()
 			new_socket = accept(server_fd, (struct sockaddr *)&address, &addrlen);
 			if (new_socket >= 0)
 			{
-				setNonBlocking(new_socket);
+				set_non_blocking(new_socket);
 				clients.push_back(new_socket);
 				std::cout << "New connection: " << new_socket << std::endl;
 			}
@@ -112,7 +119,17 @@ void start_server()
 				++it;
 		}
 	}
+}
 
-	// Close server socket
+void Server::shutdown()
+{
+	for (size_t i = 0; i < clients.size(); i++)
+		close(clients[i]);
 	close(server_fd);
+}
+
+void Server::set_non_blocking(int fd)
+{
+	int flags = fcntl(fd, F_GETFL, 0);
+	fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 }

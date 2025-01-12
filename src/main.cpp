@@ -1,5 +1,7 @@
 #include "server.h"
 
+#include <cerrno>
+#include <cstring>
 #include <iostream>
 #include <stdexcept>
 
@@ -7,11 +9,11 @@ int main()
 {
 	try
 	{
-		start_server();
+		Server server;
 	}
 	catch (const std::exception &e)
 	{
-		std::cerr << "Error: " << e.what() << std::endl;
+		std::cerr << "Error: " << e.what() << ": " << std::strerror(errno) << std::endl;
 	}
 	catch (...)
 	{
