@@ -17,6 +17,8 @@ private:
 private:
 	void start();
 	void loop();
-	void shutdown();
+	void connect_clients(fd_set &read_fds);
+	void handle_messages(fd_set &read_fds);
 	void set_non_blocking(int fd);
+	void shutdown();
 };

@@ -4,8 +4,7 @@
 #include <cstring> // TODO C
 #include <fcntl.h> // TODO C
 #include <iostream>
-#include <netinet/in.h> // TODO C
-#include <unistd.h>		// TODO C
+#include <unistd.h> // TODO C
 #include <vector>
 
 Server::Server()
@@ -73,52 +72,65 @@ void Server::loop()
 		if (activity < 0)
 			throw std::runtime_error("Select error");
 
-		// Handle new connections
-		if (FD_ISSET(server_fd, &read_fds))
-		{
-			int new_socket;
-			socklen_t addrlen = sizeof(address);
-			new_socket = accept(server_fd, (struct sockaddr *)&address, &addrlen);
-			if (new_socket >= 0)
-			{
-				set_non_blocking(new_socket);
-				clients.push_back(new_socket);
-				std::cout << "New connection: " << new_socket << std::endl;
-			}
-		}
+		connect_clients(read_fds);
+		handle_messages(read_fds);
+	}
+}
 
-		// Handle client messages
-		for (std::vector<int>::iterator it = clients.begin(); it != clients.end();)
+void Server::connect_clients(fd_set &read_fds)
+{
+	if (FD_ISSET(server_fd, &read_fds))
+	{
+		int new_socket;
+		socklen_t addrlen = sizeof(address);
+		new_socket = accept(server_fd, (struct sockaddr *)&address, &addrlen);
+		if (new_socket >= 0)
 		{
-			int client_fd = *it;
-			if (FD_ISSET(client_fd, &read_fds))
-			{
-				char buffer[BUFFER_SIZE];
-				memset(buffer, 0, BUFFER_SIZE);
-
-				// TODO gerer si le message est plus grand que BUFFER_SIZE
-				int bytes_read = read(client_fd, buffer, BUFFER_SIZE);
-				if (bytes_read <= 0)
-				{
-					// Client disconnected
-					std::cout << "Client disconnected: " << client_fd << std::endl;
-					close(client_fd);
-					it = clients.erase(it);
-				}
-				else
-				{
-					// Broadcast message
-					std::cout << "Message from client " << client_fd << ": " << buffer;
-					for (size_t i = 0; i < clients.size(); i++)
-						if (clients[i] != client_fd)
-							send(clients[i], buffer, bytes_read, 0);
-					++it;
-				}
-			}
-			else
-				++it;
+			set_non_blocking(new_socket);
+			clients.push_back(new_socket);
+			std::cout << "New connection: " << new_socket << std::endl;
 		}
 	}
+}
+
+void Server::handle_messages(fd_set &read_fds)
+{
+	for (std::vector<int>::iterator it = clients.begin(); it != clients.end();)
+	{
+		int client_fd = *it;
+		if (FD_ISSET(client_fd, &read_fds))
+		{
+			char buffer[BUFFER_SIZE];
+			memset(buffer, 0, BUFFER_SIZE);
+
+			// TODO gerer si le message est plus grand que BUFFER_SIZE
+			int bytes_read = read(client_fd, buffer, BUFFER_SIZE);
+			if (bytes_read <= 0)
+			{
+				// Client disconnected
+				std::cout << "Client disconnected: " << client_fd << std::endl;
+				close(client_fd);
+				it = clients.erase(it);
+			}
+			else
+			{
+				// Broadcast message
+				std::cout << "Message from client " << client_fd << ": " << buffer;
+				for (size_t i = 0; i < clients.size(); i++)
+					if (clients[i] != client_fd)
+						send(clients[i], buffer, bytes_read, 0);
+				++it;
+			}
+		}
+		else
+			++it;
+	}
+}
+
+void Server::set_non_blocking(int fd)
+{
+	int flags = fcntl(fd, F_GETFL, 0);
+	fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 }
 
 void Server::shutdown()
@@ -126,10 +138,4 @@ void Server::shutdown()
 	for (size_t i = 0; i < clients.size(); i++)
 		close(clients[i]);
 	close(server_fd);
-}
-
-void Server::set_non_blocking(int fd)
-{
-	int flags = fcntl(fd, F_GETFL, 0);
-	fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 }
