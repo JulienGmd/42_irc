@@ -2,7 +2,7 @@
 #include <string>
 #include <vector>
 #include <netinet/in.h>
-#include "Client.h"
+#include "Client.hpp"
 #include <iostream>
 
 class Channel 

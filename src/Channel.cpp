@@ -6,6 +6,7 @@ bool Channel::adduser(Client * user)
         if (users[i]->nickname == user->nickname)
             return (0);
     users.push_back(user);
+    return (1);
 }
 
 void Channel::deluser(Client user)
@@ -44,5 +45,6 @@ bool Channel::dispatchmessage(std::string msg)
 	            send(users[i]->socket, msg.c_str(), msg.length(), 0);
     }
     else
-        /*TODO : Execute commands*/;
+        /*TODO : Execute commands*/return (0);
+    return (1);
 }
