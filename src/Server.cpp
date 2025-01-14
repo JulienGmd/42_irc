@@ -2,7 +2,7 @@
 #include "_config.hpp"
 
 #include "Server.hpp"
-#include "commands.hpp"
+#include "channelCommands.hpp"
 #include <Utils.hpp>
 
 #include <cstring> // TODO C
