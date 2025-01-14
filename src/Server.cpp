@@ -186,7 +186,7 @@ void Server::parse_command(const std::string &message, std::string &command, std
 	if (pos != std::string::npos)
 	{
 		command = message.substr(0, pos);
-		params = message.substr(pos + 1);
+		params = message.substr(pos + 1, message.size() - pos - 2);
 	}
 	else
 		command = message;
