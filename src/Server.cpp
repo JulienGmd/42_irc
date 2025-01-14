@@ -153,6 +153,7 @@ void Server::handle_messages(fd_set &read_fds)
 				continue;
 			}
 
+			bool should_continue = false;
 			std::string msg = buffer;
 			std::vector<std::string> messages = Utils::split(msg, "\n");
 			for (size_t i = 0; i < messages.size(); i++)
@@ -176,7 +177,8 @@ void Server::handle_messages(fd_set &read_fds)
 						send(client.socket, "Invalid password\n", 17, 0);
 						close(client.socket);
 						it = clients.erase(it);
-						continue;
+						should_continue = true;
+						break;
 					}
 				}
 				else if (command == "USER")
@@ -192,9 +194,12 @@ void Server::handle_messages(fd_set &read_fds)
 					// TODO disconnect from channel
 					close(client.socket);
 					it = clients.erase(it);
-					continue;
+					should_continue = true;
+					break;
 				}
 			}
+			if (should_continue)
+				continue;
 			++it;
 		}
 		else
