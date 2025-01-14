@@ -20,6 +20,8 @@ Server::Server(int port, const std::string &password)
 {
 	Channel a("#general");
 	a.changetopic("On parle de tout et de rien");
+	a.changemode("+l");
+	a.changeul(1024);
 	this->channels.push_back(a);
 	start();
 	loop();
@@ -166,7 +168,7 @@ void Server::handle_messages(fd_set &read_fds)
 				parse_command(message, command, params);
 				std::cout << "Command: " << command << ", Params: " << params << std::endl;
 
-				if (handle_channel_command(client, command, params, channels))
+				if (handle_channel_command(&client, command, params, channels))
 					continue;
 				if (command == "PASS")
 				{

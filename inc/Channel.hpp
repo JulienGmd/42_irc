@@ -27,10 +27,13 @@ class Channel
         t_modes modes;
     public:
         Channel(std::string name);
+        std::vector<Client *> getusers();
         std::string         getid();
         std::string         gettopic();
         void                changetopic(std::string topic);
         void                changemode(std::string);
+        void                changepw(std::string pw);
+        void                changeul(size_t ul);
         std::string         getmode();
         size_t              getusercount();
         size_t              getuserlimit();

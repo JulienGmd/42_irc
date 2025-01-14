@@ -23,6 +23,21 @@ std::string Channel::getmode()
     return (amodes);
 }
 
+std::vector<Client *> Channel::getusers()
+{
+    return(users);
+}
+
+void                Channel::changepw(std::string pw)
+{
+    password = pw;
+}
+
+void                Channel::changeul(size_t ul)
+{
+    userlimit = ul;
+}
+
 void        Channel::changemode(std::string mode)
 {
     size_t i = 1;
@@ -38,6 +53,7 @@ void        Channel::changemode(std::string mode)
                 modes.k = 1;
             else if (mode[i] == 'l')
                 modes.l = 1;
+            i++;
         }
     }
     else if (mode[0] == '-')
@@ -52,6 +68,7 @@ void        Channel::changemode(std::string mode)
                 modes.k = 0;
             else if (mode[i] == 'l')
                 modes.l = 0;
+            i++;
         }
     }
 }
