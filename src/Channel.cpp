@@ -1,6 +1,66 @@
 #include "Channel.hpp"
 
-Channel::Channel(std::string name) : _id(name), topic(""){}
+Channel::Channel(std::string name) : _id(name), topic(""){
+    modes.i = 0;
+    modes.t = 0;
+    modes.k = 0;
+    modes.o = 0;
+    modes.l = 0;
+    modes.userlimit = 0;
+}
+
+std::string Channel::getmode()
+{
+    std::string amodes;
+
+    if (modes.i)
+        amodes += "i";
+    if (modes.t)
+        amodes += "t";
+    if (modes.k)
+        amodes += "k";
+    if (modes.o)
+        amodes += "o";
+    if (modes.l)
+        amodes += "l";
+}
+
+void        Channel::changemode(std::string mode)
+{
+    size_t i = 1;
+    if (mode[0] == '+')
+    {
+        while (mode[i])
+        {
+            if (mode[i] == 'i')
+                modes.i = 1;
+            else if (mode[i] == 't')
+                modes.t = 1;
+            else if (mode[i] == 'k')
+                modes.k = 1;
+            else if (mode[i] == 'o')
+                modes.o = 1;
+            else if (mode[i] == 'l')
+                modes.l = 1;
+        }
+    }
+    else if (mode[0] == '-')
+    {
+        while (mode[i])
+        {
+            if (mode[i] == 'i')
+                modes.i = 0;
+            else if (mode[i] == 't')
+                modes.t = 0;
+            else if (mode[i] == 'k')
+                modes.k = 0;
+            else if (mode[i] == 'o')
+                modes.o = 0;
+            else if (mode[i] == 'l')
+                modes.l = 0;
+        }
+    }
+}
 
 std::string    Channel::getid()
 {

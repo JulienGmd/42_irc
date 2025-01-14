@@ -4,23 +4,37 @@
 #include <cstring>
 #include <string>
 
+bool isallowed(Client usr, Channel chan)
+{
+    if (chan.modes.i)
+    return (1);
+}
+
 void join(Client usr, std::string params, std::vector<Channel> &a)
 {
     size_t i = 0;
 
-    std::string success = ":";
-    success += usr.nickname + "!" + usr.username + "@" + usr.hostname + " JOIN " + params + "\n";
+    std::string client = ":";
+    client += usr.nickname + "!" + usr.username + "@" + usr.hostname + " ";
     for (; i < a.size(); i++)
     {
         if (a[i].getid() == params)
         {
-            send(usr.socket, success.c_str(), success.length(), 0);
-            // send(usr.socket, );
+            if (isallowed(usr, a[i]))
+            {
+                std::string joinsuccess = client + " JOIN " + params + "\n";
+                std::string topicsuccess= client + ;
+                joinsuccess += ;
+                send(usr.socket, joinsuccess.c_str(), joinsuccess.length(), 0);
+                // send(usr.socket, );
+            }
             return;
         }
     }
     if (i == a.size())
-        std::cerr << "Nosuchchannel" << std::endl;
+    {
+        Channel newchan(params);
+    }
 }
 
 bool handle_channel_command(Client usr, std::string command, std::string params, std::vector<Channel> &channels)

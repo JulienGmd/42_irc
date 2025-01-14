@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Client.hpp"
+#include "Channel.hpp"
 #include "Server.hpp"
 
 bool handle_channel_command(Client usr, std::string command, std::string params, std::vector<Channel> &channels);
