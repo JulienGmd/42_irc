@@ -1,5 +1,5 @@
 
-#include "commands.hpp"
+#include "channelCommands.hpp"
 #include <algorithm>
 #include <cstring>
 #include <string>
@@ -15,7 +15,7 @@ void join(Client usr, std::string params, std::vector<Channel> &a)
         if (a[i].getid() == params)
         {
             send(usr.socket, success.c_str(), success.length(), 0);
-            send(usr.socket);
+            // send(usr.socket, );
             return;
         }
     }

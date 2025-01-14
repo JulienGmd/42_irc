@@ -7,6 +7,11 @@ std::string    Channel::getid()
     return (this->_id);
 }
 
+std::string    Channel::gettopic()
+{
+    return (topic);
+}
+
 void    Channel::changetopic(std::string topic){
     this->topic = topic;
 }
