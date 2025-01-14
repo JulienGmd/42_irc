@@ -164,12 +164,12 @@ void Server::handle_messages(fd_set &read_fds)
 				parse_command(message, command, params);
 				std::cout << "Command: " << command << ", Params: " << params << std::endl;
 
+				if (command == "USER")
+					client.username = params.substr(0, params.find(" "));
 				if (command == "NICK")
 					client.nickname = params;
 				else if (command == "JOIN")
-				{
 					join(client.socket, params, channels);
-				}
 				else if (command == "PART")
 				{
 					// TODO disconnect client from channel
@@ -196,34 +196,35 @@ void Server::handle_messages(fd_set &read_fds)
 					// 	if (clients[i].socket != client.socket)
 					// 		send(clients[i].socket, buffer, bytes_read, 0);
 				}
-
-				++it;
 			}
-			else ++it;
-		}
-	}
-
-	void Server::parse_command(const std::string &message, std::string &command, std::string &params)
-	{
-		size_t pos = message.find(" ");
-		if (pos != std::string::npos)
-		{
-			command = message.substr(0, pos);
-			params = message.substr(pos + 1, message.size() - pos - 2);
+			++it;
 		}
 		else
-			command = message;
+			++it;
 	}
+}
 
-	void Server::set_non_blocking(int fd)
+void Server::parse_command(const std::string &message, std::string &command, std::string &params)
+{
+	size_t pos = message.find(" ");
+	if (pos != std::string::npos)
 	{
-		int flags = fcntl(fd, F_GETFL, 0);
-		fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+		command = message.substr(0, pos);
+		params = message.substr(pos + 1, message.size() - pos - 2);
 	}
+	else
+		command = message;
+}
 
-	void Server::shutdown()
-	{
-		for (size_t i = 0; i < clients.size(); i++)
-			close(clients[i].socket);
-		close(server_fd);
-	}
+void Server::set_non_blocking(int fd)
+{
+	int flags = fcntl(fd, F_GETFL, 0);
+	fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+}
+
+void Server::shutdown()
+{
+	for (size_t i = 0; i < clients.size(); i++)
+		close(clients[i].socket);
+	close(server_fd);
+}
