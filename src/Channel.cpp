@@ -1,12 +1,11 @@
 #include "Channel.hpp"
 
-Channel::Channel(std::string name) : _id(name), topic(""){
+Channel::Channel(std::string name) : _id(name), topic(""), userlimit(0), password(""){
     modes.i = 0;
     modes.t = 0;
     modes.k = 0;
     modes.o = 0;
     modes.l = 0;
-    modes.userlimit = 0;
 }
 
 std::string Channel::getmode()
@@ -19,10 +18,9 @@ std::string Channel::getmode()
         amodes += "t";
     if (modes.k)
         amodes += "k";
-    if (modes.o)
-        amodes += "o";
     if (modes.l)
         amodes += "l";
+    return (amodes);
 }
 
 void        Channel::changemode(std::string mode)
@@ -38,8 +36,6 @@ void        Channel::changemode(std::string mode)
                 modes.t = 1;
             else if (mode[i] == 'k')
                 modes.k = 1;
-            else if (mode[i] == 'o')
-                modes.o = 1;
             else if (mode[i] == 'l')
                 modes.l = 1;
         }
@@ -54,8 +50,6 @@ void        Channel::changemode(std::string mode)
                 modes.t = 0;
             else if (mode[i] == 'k')
                 modes.k = 0;
-            else if (mode[i] == 'o')
-                modes.o = 0;
             else if (mode[i] == 'l')
                 modes.l = 0;
         }
@@ -105,6 +99,14 @@ bool Channel::isoperator(Client user)
     return (0);
 }
 
+bool Channel::isinvited(Client user)
+{
+    for (size_t i = 0; i < invitelist.size(); i++)
+        if (invitelist[i] == user.nickname)
+            return(1);
+    return (0);
+}
+
 bool Channel::iscommand(std::string command)
 {
     return (command == "NICK" || command == "JOIN"
@@ -123,4 +125,18 @@ bool Channel::dispatchmessage(std::string msg)
     else
         /*TODO : Execute commands*/return (0);
     return (1);
+}
+
+size_t              Channel::getusercount()
+{
+    return(users.size());
+}
+
+size_t              Channel::getuserlimit()
+{
+    return (userlimit);
+}
+std::string         Channel::getpw()
+{
+    return(password);
 }
