@@ -1,6 +1,6 @@
-#include "_config.h"
+#include "_config.hpp"
 
-#include "Server.h"
+#include "Server.hpp"
 #include <cstring> // TODO C
 #include <fcntl.h> // TODO C
 #include <iostream>

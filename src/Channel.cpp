@@ -1,4 +1,4 @@
-#include "Channel.h"
+#include "Channel.hpp"
 
 bool Channel::adduser(Client * user)
 {
