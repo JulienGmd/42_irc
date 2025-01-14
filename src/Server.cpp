@@ -19,6 +19,7 @@ Server::Server(int port, const std::string &password)
 	: PORT(port), PASSWORD(password), server_fd(-1), address(), clients()
 {
 	Channel a("#general");
+	a.changetopic("On parle de tout et de rien");
 	this->channels.push_back(a);
 	start();
 	loop();

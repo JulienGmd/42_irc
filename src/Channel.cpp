@@ -1,13 +1,14 @@
 #include "Channel.hpp"
 
-Channel::Channel(std::string name) : _id(name)
-{
-
-}
+Channel::Channel(std::string name) : _id(name), topic(""){}
 
 std::string    Channel::getid()
 {
     return (this->_id);
+}
+
+void    Channel::changetopic(std::string topic){
+    this->topic = topic;
 }
 
 bool Channel::adduser(Client * user)
