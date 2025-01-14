@@ -168,7 +168,7 @@ void Server::handle_messages(fd_set &read_fds)
 					continue;
 				if (command == "USER")
 					client.username = params.substr(0, params.find(" "));
-				if (command == "NICK")
+				else if (command == "NICK")
 					client.nickname = params;
 				else if (command == "PRIVMSG")
 				{
@@ -180,13 +180,6 @@ void Server::handle_messages(fd_set &read_fds)
 					close(client.socket);
 					it = clients.erase(it);
 					continue;
-				}
-				else
-				{
-					// TODO ? Send message to channel
-					// for (size_t i = 0; i < clients.size(); i++)
-					// 	if (clients[i].socket != client.socket)
-					// 		send(clients[i].socket, buffer, bytes_read, 0);
 				}
 			}
 			++it;
