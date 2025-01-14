@@ -164,20 +164,12 @@ void Server::handle_messages(fd_set &read_fds)
 				parse_command(message, command, params);
 				std::cout << "Command: " << command << ", Params: " << params << std::endl;
 
+				if (handle_channel_command(client, command, params, channels))
+					continue;
 				if (command == "USER")
 					client.username = params.substr(0, params.find(" "));
 				if (command == "NICK")
 					client.nickname = params;
-				else if (command == "JOIN")
-					join(client, params, channels);
-				else if (command == "PART")
-				{
-					// TODO disconnect client from channel
-				}
-				else if (command == "LIST")
-				{
-					// TODO list channels
-				}
 				else if (command == "PRIVMSG")
 				{
 					// TODO send message to user or channel
