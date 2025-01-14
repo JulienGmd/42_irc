@@ -166,7 +166,19 @@ void Server::handle_messages(fd_set &read_fds)
 
 				if (handle_channel_command(client, command, params, channels))
 					continue;
-				if (command == "USER")
+				if (command == "PASS")
+				{
+					if (params == PASSWORD)
+						client.has_set_server_password = true;
+					else
+					{
+						send(client.socket, "Invalid password\n", 17, 0);
+						close(client.socket);
+						it = clients.erase(it);
+						continue;
+					}
+				}
+				else if (command == "USER")
 					client.username = params.substr(0, params.find(" "));
 				else if (command == "NICK")
 					client.nickname = params;

@@ -9,8 +9,8 @@ public:
 
 public:
 	int socket;
+	bool has_set_server_password;
 	std::string nickname;
 	std::string username;
 	std::string hostname;
-	std::string channel;
 };
