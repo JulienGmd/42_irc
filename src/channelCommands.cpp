@@ -6,7 +6,6 @@
 
 bool isallowed(Client usr, Channel chan)
 {
-    if (chan.modes.i)
     return (1);
 }
 
