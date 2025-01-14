@@ -2,6 +2,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 namespace Utils
 {
@@ -33,4 +34,15 @@ namespace Utils
 		}
 	}
 
+	std::vector<std::string> split(const std::string &str, const std::string &delimiter)
+	{
+		std::vector<std::string> result;
+		std::stringstream ss(str);
+		std::string item;
+
+		while (std::getline(ss, item, delimiter[0]))
+			result.push_back(item);
+
+		return result;
+	}
 }

@@ -1,10 +1,15 @@
+#include "Server.hpp"
 #include "_config.hpp"
+
 #include "Server.hpp"
 #include "commands.hpp"
+#include <Utils.hpp>
 
 #include <cstring> // TODO C
 #include <fcntl.h> // TODO C
 #include <iostream>
+#include <netdb.h>
+#include <sys/socket.h>
 #include <unistd.h> // TODO C
 #include <vector>
 
@@ -101,10 +106,14 @@ void Server::connect_clients(fd_set &read_fds)
 		new_socket = accept(server_fd, (struct sockaddr *)&address, &addrlen);
 		if (new_socket >= 0)
 		{
+			char host[NI_MAXHOST];
+			if (getnameinfo((struct sockaddr *)&address, addrlen, host, NI_MAXHOST, NULL, 0, 0) != 0)
+				strcpy(host, "UNKNOWN");
 			// Add the client to the list of clients
 			set_non_blocking(new_socket);
 			clients.push_back(Client(new_socket));
-			std::cout << "New connection: " << new_socket << std::endl;
+			clients.back().hostname = host;
+			std::cout << "New connection: " << host << ", Socket: " << new_socket << std::endl;
 			send(new_socket, "Welcome!\n", 9, 0);
 		}
 	}
@@ -118,16 +127,20 @@ void Server::handle_messages(fd_set &read_fds)
 {
 	for (std::vector<Client>::iterator it = clients.begin(); it != clients.end();)
 	{
-		Client client = *it;
+		Client &client = *it;
 		if (FD_ISSET(client.socket, &read_fds))
 		{
-
 			char buffer[BUFFER_SIZE];
 			memset(buffer, 0, BUFFER_SIZE);
 
 			// TODO gerer si le message est plus grand que BUFFER_SIZE
 			int bytes_read = read(client.socket, buffer, BUFFER_SIZE);
-			std::cout << "Message from client " << client.socket << ": " << buffer;
+			std::cout << "Message from client ("
+					  << "Hostname: " << client.hostname
+					  << ", Nickname: " << client.nickname
+					  << ", Username: " << client.username
+					  << ", Socket: " << client.socket << ")\n"
+					  << buffer;
 
 			if (bytes_read <= 0)
 			{
@@ -139,71 +152,78 @@ void Server::handle_messages(fd_set &read_fds)
 				continue;
 			}
 
-			std::string command, params;
-			parse_command(buffer, command, params);
-			std::cout << "Command: " << command << ", Params: " << params << std::endl;
+			std::string msg = buffer;
+			std::vector<std::string> messages = Utils::split(msg, "\n");
+			for (size_t i = 0; i < messages.size(); i++)
+			{
+				std::string message = messages[i];
+				if (message.empty())
+					continue;
 
-			if (command == "NICK")
-				client.nickname = params;
-			else if (command == "JOIN")
-			{
-				join(client.socket, params, channels);
-			}
-			else if (command == "PART")
-			{
-				// TODO disconnect client from channel
-			}
-			else if (command == "LIST")
-			{
-				// TODO list channels
-			}
-			else if (command == "PRIVMSG")
-			{
-				// TODO send message to user or channel
-			}
-			else if (command == "QUIT")
-			{
-				// TODO disconnect from channel
-				close(client.socket);
-				it = clients.erase(it);
-				continue;
-			}
-			else
-			{
-				// TODO ? Send message to channel
-				// for (size_t i = 0; i < clients.size(); i++)
-				// 	if (clients[i].socket != client.socket)
-				// 		send(clients[i].socket, buffer, bytes_read, 0);
-			}
+				std::string command, params;
+				parse_command(message, command, params);
+				std::cout << "Command: " << command << ", Params: " << params << std::endl;
 
-			++it;
+				if (command == "NICK")
+					client.nickname = params;
+				else if (command == "JOIN")
+				{
+					join(client.socket, params, channels);
+				}
+				else if (command == "PART")
+				{
+					// TODO disconnect client from channel
+				}
+				else if (command == "LIST")
+				{
+					// TODO list channels
+				}
+				else if (command == "PRIVMSG")
+				{
+					// TODO send message to user or channel
+				}
+				else if (command == "QUIT")
+				{
+					// TODO disconnect from channel
+					close(client.socket);
+					it = clients.erase(it);
+					continue;
+				}
+				else
+				{
+					// TODO ? Send message to channel
+					// for (size_t i = 0; i < clients.size(); i++)
+					// 	if (clients[i].socket != client.socket)
+					// 		send(clients[i].socket, buffer, bytes_read, 0);
+				}
+
+				++it;
+			}
+			else ++it;
+		}
+	}
+
+	void Server::parse_command(const std::string &message, std::string &command, std::string &params)
+	{
+		size_t pos = message.find(" ");
+		if (pos != std::string::npos)
+		{
+			command = message.substr(0, pos);
+			params = message.substr(pos + 1, message.size() - pos - 2);
 		}
 		else
-			++it;
+			command = message;
 	}
-}
 
-void Server::parse_command(const std::string &message, std::string &command, std::string &params)
-{
-	size_t pos = message.find(" ");
-	if (pos != std::string::npos)
+	void Server::set_non_blocking(int fd)
 	{
-		command = message.substr(0, pos);
-		params = message.substr(pos + 1, message.size() - pos - 2);
+		int flags = fcntl(fd, F_GETFL, 0);
+		fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 	}
-	else
-		command = message;
-}
 
-void Server::set_non_blocking(int fd)
-{
-	int flags = fcntl(fd, F_GETFL, 0);
-	fcntl(fd, F_SETFL, flags | O_NONBLOCK);
-}
-
-void Server::shutdown()
-{
-	for (size_t i = 0; i < clients.size(); i++)
-		close(clients[i].socket);
-	close(server_fd);
-}
+	void Server::shutdown()
+	{
+		for (size_t i = 0; i < clients.size(); i++)
+			close(clients[i].socket);
+		close(server_fd);
+	}
