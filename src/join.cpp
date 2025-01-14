@@ -4,19 +4,17 @@
 #include <string>
 #include <cstring>
 
-void    join(int usrSocket, std::string params, std::vector<Channel> &a)
+void    join(Client usr, std::string params, std::vector<Channel> &a)
 {
     size_t i = 0;
 
-    std::string success = ":devduck!devduck@localhost JOIN general\n";
-    std::replace(params.begin(), params.end(), '\n', '\0');
-    params.resize(params.length() - 1);
+    std::string success = ":";
+    success += usr.nickname + "!" + usr.username + "@" + usr.hostname + " JOIN " + params + "\n";
     for (; i < a.size(); i++)
     {
         if (a[i].getid() == params)
         {
-            std::cerr << a[i].getid() << "|" << params << std::endl;
-            send(usrSocket, success.c_str(), success.length(), 0);
+            send(usr.socket, success.c_str(), success.length(), 0);
             return;
         }
     }

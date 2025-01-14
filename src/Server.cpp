@@ -18,7 +18,7 @@
 Server::Server(int port, const std::string &password)
 	: PORT(port), PASSWORD(password), server_fd(-1), address(), clients()
 {
-	Channel a("general");
+	Channel a("#general");
 	this->channels.push_back(a);
 	start();
 	loop();
@@ -169,7 +169,7 @@ void Server::handle_messages(fd_set &read_fds)
 				if (command == "NICK")
 					client.nickname = params;
 				else if (command == "JOIN")
-					join(client.socket, params, channels);
+					join(client, params, channels);
 				else if (command == "PART")
 				{
 					// TODO disconnect client from channel
