@@ -1,15 +1,19 @@
 #include "Server.h"
+#include "Utils.h"
 
 #include <cerrno>
 #include <cstring>
 #include <iostream>
-#include <stdexcept>
+#include <string>
 
-int main()
+int main(int ac, char **av)
 {
 	try
 	{
-		Server server;
+		int port;
+		std::string password;
+		Utils::parse_args(ac, av, port, password);
+		Server server(port, password);
 	}
 	catch (const std::exception &e)
 	{

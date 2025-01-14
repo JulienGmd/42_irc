@@ -7,8 +7,10 @@
 #include <unistd.h> // TODO C
 #include <vector>
 
-Server::Server()
-	: server_fd(-1), address(), clients()
+// TODO password
+
+Server::Server(int port, const std::string &password)
+	: PORT(port), PASSWORD(password), server_fd(-1), address(), clients()
 {
 	start();
 	loop();

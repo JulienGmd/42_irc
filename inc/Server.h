@@ -11,10 +11,12 @@
 class Server
 {
 public:
-	Server();
+	Server(int port, const std::string &password);
 	~Server();
 
 private:
+	const int PORT;
+	const std::string PASSWORD;
 	int server_fd;
 	sockaddr_in address;
 	std::vector<Client> clients;
