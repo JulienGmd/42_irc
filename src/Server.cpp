@@ -1,6 +1,7 @@
 #include "_config.hpp"
-
 #include "Server.hpp"
+#include "commands.hpp"
+
 #include <cstring> // TODO C
 #include <fcntl.h> // TODO C
 #include <iostream>
@@ -12,6 +13,8 @@
 Server::Server(int port, const std::string &password)
 	: PORT(port), PASSWORD(password), server_fd(-1), address(), clients()
 {
+	Channel a("general");
+	this->channels.push_back(a);
 	start();
 	loop();
 }
@@ -144,7 +147,7 @@ void Server::handle_messages(fd_set &read_fds)
 				client.nickname = params;
 			else if (command == "JOIN")
 			{
-				// TODO add client to channel
+				join(client.socket, params, channels);
 			}
 			else if (command == "PART")
 			{

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Client.hpp"
+#include "Channel.hpp"
 
 #include <map>
 #include <netinet/in.h>
@@ -20,6 +21,7 @@ private:
 	int server_fd;
 	sockaddr_in address;
 	std::vector<Client> clients;
+	std::vector<Channel> channels;
 
 private:
 	void start();

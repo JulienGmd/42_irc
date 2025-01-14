@@ -12,6 +12,8 @@ class Channel
         std::vector<Client *> users;
         std::vector<Client *> operators;
     public:
+        Channel(std::string name);
+        std::string getid();
         bool adduser(Client * user);
         void deluser(Client user);
         bool isoperator(Client user);

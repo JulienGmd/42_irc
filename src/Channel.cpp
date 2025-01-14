@@ -1,5 +1,15 @@
 #include "Channel.hpp"
 
+Channel::Channel(std::string name) : _id(name)
+{
+
+}
+
+std::string    Channel::getid()
+{
+    return (this->_id);
+}
+
 bool Channel::adduser(Client * user)
 {
     for (size_t i = 0; i < users.size(); i++)
