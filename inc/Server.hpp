@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Client.hpp"
 #include "Channel.hpp"
+#include "Client.hpp"
 
 #include <map>
 #include <netinet/in.h>
@@ -26,7 +26,7 @@ private:
 private:
 	void start();
 	void loop();
-	void connect_clients(fd_set &read_fds);
+	void connect_client(fd_set &read_fds);
 	void handle_messages(fd_set &read_fds);
 	void parse_command(const std::string &message, std::string &command, std::string &params);
 	void set_non_blocking(int fd);

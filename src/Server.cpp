@@ -74,7 +74,7 @@ void Server::loop()
 		// Add server_fd and client sockets to read_fds
 		FD_ZERO(&read_fds);
 		FD_SET(server_fd, &read_fds);
-		max_fd = server_fd;
+		max_fd = server_fd; // TODO maxfd doit etre le plus grand socket ou num sockets ?
 		for (size_t i = 0; i < clients.size(); i++)
 		{
 			FD_SET(clients[i].socket, &read_fds);
@@ -90,7 +90,7 @@ void Server::loop()
 		if (activity < 0)
 			throw std::runtime_error("Select failed");
 
-		connect_clients(read_fds);
+		connect_client(read_fds);
 		handle_messages(read_fds);
 	}
 }
@@ -99,27 +99,30 @@ void Server::loop()
  * Connect pending clients.
  * @param read_fds Set of file descriptors that have pending data
  */
-void Server::connect_clients(fd_set &read_fds)
+void Server::connect_client(fd_set &read_fds)
 {
-	if (FD_ISSET(server_fd, &read_fds))
-	{
-		// Create a new socket for the client
-		int new_socket;
-		socklen_t addrlen = sizeof(address);
-		new_socket = accept(server_fd, (struct sockaddr *)&address, &addrlen);
-		if (new_socket >= 0)
-		{
-			char host[NI_MAXHOST];
-			if (getnameinfo((struct sockaddr *)&address, addrlen, host, NI_MAXHOST, NULL, 0, 0) != 0)
-				strcpy(host, "UNKNOWN");
-			// Add the client to the list of clients
-			set_non_blocking(new_socket);
-			clients.push_back(Client(new_socket));
-			clients.back().hostname = host;
-			std::cout << "New connection: " << host << ", Socket: " << new_socket << std::endl;
-			send(new_socket, "Welcome!\n", 9, 0);
-		}
-	}
+	if (!FD_ISSET(server_fd, &read_fds))
+		return;
+
+	// Create a new socket for the client
+	int new_socket;
+	socklen_t addrlen = sizeof(address);
+	new_socket = accept(server_fd, (struct sockaddr *)&address, &addrlen);
+	if (new_socket < 0)
+		throw std::runtime_error("Accept failed");
+
+	// Add the client to the list of clients
+	set_non_blocking(new_socket);
+	clients.push_back(Client(new_socket));
+
+	// Retrieve the hostname of the client
+	char host[NI_MAXHOST];
+	if (getnameinfo((struct sockaddr *)&address, addrlen, host, NI_MAXHOST, NULL, 0, 0) != 0)
+		strcpy(host, "UNKNOWN");
+	clients.back().hostname = host;
+
+	std::cout << "New connection: " << host << ", Socket: " << new_socket << std::endl;
+	send(new_socket, "Welcome!\n", 9, 0);
 }
 
 /**
