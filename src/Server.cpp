@@ -215,8 +215,6 @@ bool Server::handle_client_messages(Client &client, const std::string &buffer, i
 		}
 		else if (command == "QUIT")
 			return false;
-		else
-			send(client.socket, "Invalid command\n", 16, 0);
 	}
 	return true;
 }
