@@ -91,7 +91,7 @@ void Server::loop()
 			throw std::runtime_error("Select failed");
 
 		connect_client(read_fds);
-		handle_messages(read_fds);
+		handle_clients_messages(read_fds);
 	}
 }
 
@@ -125,103 +125,112 @@ void Server::connect_client(fd_set &read_fds)
 	send(new_socket, "Welcome!\n", 9, 0);
 }
 
+std::vector<Client>::iterator Server::disconnect_client(const std::vector<Client>::iterator &it)
+{
+	// TODO disconnect from channel
+	Client &client = *it;
+	close(client.socket);
+	std::cout << "Client disconnected: " << client.socket << std::endl;
+	return clients.erase(it);
+}
+
 /**
  * Handle messages from clients.
  * @param read_fds Set of file descriptors that have pending data
  */
-void Server::handle_messages(fd_set &read_fds)
+void Server::handle_clients_messages(fd_set &read_fds)
 {
 	for (std::vector<Client>::iterator it = clients.begin(); it != clients.end();)
 	{
 		Client &client = *it;
-		if (FD_ISSET(client.socket, &read_fds))
+		if (!FD_ISSET(client.socket, &read_fds))
 		{
-			char buffer[BUFFER_SIZE];
-			memset(buffer, 0, BUFFER_SIZE);
-
-			// TODO gerer si le message est plus grand que BUFFER_SIZE
-			int bytes_read = read(client.socket, buffer, BUFFER_SIZE);
-			std::cout << "Message from client ("
-					  << "Hostname: " << client.hostname
-					  << ", Nickname: " << client.nickname
-					  << ", Username: " << client.username
-					  << ", Socket: " << client.socket << ")\n"
-					  << buffer;
-
-			if (bytes_read <= 0)
-			{
-				// Client disconnected
-				std::cout << "Client disconnected: " << client.socket << std::endl;
-				// TODO disconnect from channel
-				close(client.socket);
-				it = clients.erase(it);
-				continue;
-			}
-
-			bool should_continue = false;
-			std::string msg = buffer;
-			std::vector<std::string> messages = Utils::split(msg, "\n");
-			for (size_t i = 0; i < messages.size(); i++)
-			{
-				std::string message = messages[i];
-				if (message.empty())
-					continue;
-
-				std::string command, params;
-				parse_command(message, command, params);
-				std::cout << "Command: " << command << ", Params: " << params << std::endl;
-
-				if (handle_channel_command(&client, command, params, channels))
-					continue;
-				if (command == "PASS")
-				{
-					if (params == PASSWORD)
-						client.has_set_server_password = true;
-					else
-					{
-						send(client.socket, "Invalid password\n", 17, 0);
-						close(client.socket);
-						it = clients.erase(it);
-						should_continue = true;
-						break;
-					}
-				}
-				else if (command == "USER")
-					client.username = params.substr(0, params.find(" "));
-				else if (command == "NICK")
-					client.nickname = params;
-				else if (command == "PRIVMSG")
-				{
-					// TODO send message to user or channel
-				}
-				else if (command == "QUIT")
-				{
-					// TODO disconnect from channel
-					close(client.socket);
-					it = clients.erase(it);
-					should_continue = true;
-					break;
-				}
-			}
-			if (should_continue)
-				continue;
 			++it;
+			continue;
 		}
-		else
-			++it;
+
+		char buffer[BUFFER_SIZE];
+		memset(buffer, 0, BUFFER_SIZE);
+
+		// TODO gerer si le message est plus grand que BUFFER_SIZE
+		int bytes_read = read(client.socket, buffer, BUFFER_SIZE);
+		std::cout << "Message from client ("
+				  << "Hostname: " << client.hostname
+				  << ", Nickname: " << client.nickname
+				  << ", Username: " << client.username
+				  << ", Socket: " << client.socket << ")\n"
+				  << buffer;
+
+		if (!handle_client_messages(client, buffer, bytes_read))
+		{
+			it = disconnect_client(it);
+			continue;
+		}
+
+		++it;
 	}
 }
 
-void Server::parse_command(const std::string &message, std::string &command, std::string &params)
+/**
+ * Handle messages from a client.
+ * @param client Client that sent the message.
+ * @param buffer Message sent by the client.
+ * @return False if the client should be disconnected, true otherwise.
+ */
+bool Server::handle_client_messages(Client &client, const std::string &buffer, int bytes_read)
+{
+	if (bytes_read <= 0)
+		return false;
+
+	std::vector<std::string> messages = Utils::split(buffer, "\n");
+	for (size_t i = 0; i < messages.size(); i++)
+	{
+		std::string message = messages[i];
+		if (message.empty())
+			continue;
+
+		std::string command, params;
+		parse_command(message, command, params);
+		std::cout << "Command: " << command << ", Params: " << params << std::endl;
+
+		if (handle_channel_command(&client, command, params, channels))
+			continue;
+		if (command == "PASS")
+		{
+			if (params == PASSWORD)
+				client.has_set_server_password = true;
+			else
+			{
+				send(client.socket, "Invalid password\n", 17, 0);
+				return false;
+			}
+		}
+		else if (command == "USER")
+			client.username = params.substr(0, params.find(" "));
+		else if (command == "NICK")
+			client.nickname = params;
+		else if (command == "PRIVMSG")
+		{
+			// TODO send message to user or channel
+		}
+		else if (command == "QUIT")
+			return false;
+		else
+			send(client.socket, "Invalid command\n", 16, 0);
+	}
+	return true;
+}
+
+void Server::parse_command(const std::string &message, std::string &out_command, std::string &out_params)
 {
 	size_t pos = message.find(" ");
 	if (pos != std::string::npos)
 	{
-		command = message.substr(0, pos);
-		params = message.substr(pos + 1, message.size() - pos - 2);
+		out_command = message.substr(0, pos);
+		out_params = message.substr(pos + 1, message.size() - pos - 2);
 	}
 	else
-		command = message;
+		out_command = message;
 }
 
 void Server::set_non_blocking(int fd)

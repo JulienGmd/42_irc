@@ -27,8 +27,10 @@ private:
 	void start();
 	void loop();
 	void connect_client(fd_set &read_fds);
-	void handle_messages(fd_set &read_fds);
-	void parse_command(const std::string &message, std::string &command, std::string &params);
+	std::vector<Client>::iterator Server::disconnect_client(const std::vector<Client>::iterator &it);
+	void handle_clients_messages(fd_set &read_fds);
+	bool handle_client_messages(Client &client, const std::string &buffer, int bytes_read);
+	void parse_command(const std::string &message, std::string &out_command, std::string &out_params);
 	void set_non_blocking(int fd);
 	void shutdown();
 };
