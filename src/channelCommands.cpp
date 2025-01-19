@@ -1,34 +1,32 @@
-
 #include "channelCommands.hpp"
 #include "_config.hpp"
 #include <algorithm>
 #include <cstring>
 #include <string>
+#include <vector>
+#include <sstream>
 
+// Helper Functions
 int myStoi(const std::string& str) {
     int result = 0;
     int sign = 1;
     size_t i = 0;
 
-    // Handle empty string
     if (str.empty()) {
         throw std::invalid_argument("Input string is empty");
     }
 
-    // Handle optional sign
     if (str[i] == '+' || str[i] == '-') {
         sign = (str[i] == '-') ? -1 : 1;
         i++;
     }
 
-    // Convert characters to integer
     for (; i < str.size(); i++) {
         if (str[i] < '0' || str[i] > '9') {
             throw std::invalid_argument("Invalid character in input string");
         }
         int digit = str[i] - '0';
 
-        // Handle potential overflow
         if (result > (2147483647 - digit) / 10) {
             throw std::out_of_range("Integer overflow");
         }
@@ -59,483 +57,247 @@ std::vector<std::string> splitString(const std::string& str, char delimiter) {
     return tokens;
 }
 
-
-bool isallowed(Client usr, Channel chan, std::string pw)
-{
+bool isallowed(Client usr, Channel chan, std::string pw) {
     std::string modes = chan.getmode();
-    for (size_t i = 0; modes[i]; i++)
-    {
+    for (size_t i = 0; i < modes.size(); i++) {
         if (modes[i] == 'i' && !chan.isinvited(usr))
-            return (0);
+            return false;
         if (modes[i] == 'k' && pw != chan.getpw())
-            return (0);
-        if (modes[i] == 'l' &&  chan.getusercount() > chan.getuserlimit())
-            return (0);
+            return false;
+        if (modes[i] == 'l' && chan.getusercount() > chan.getuserlimit())
+            return false;
     }
-    return (1);
+    return true;
 }
 
-bool who(Client usr, std::string params, std::vector<Channel> &a)
-{
-    size_t i = 0;
+// JOIN Command
+void join(Client* usr, std::string params, std::vector<Channel>& channels) {
     std::string hostname = IRCHOSTNAME;
     std::vector<std::string> split = splitString(params, ' ');
-    if (split.size() > 1)
-        return (0);
-    for (; i < a.size(); i++)
-    {
-        if (a[i].getid() == split[0])
-        {
-                std::string whobase = ":" + hostname + " 353 ";
-                std::string nicklist = "";
-                std::vector<Client *> vec= a[i].getusers();
-                for (size_t j = 0; j < a[i].getusercount(); j++)
-                {
-                    if (a[i].isoperator(*(vec[j])))
-                        nicklist += "@";
-                    nicklist += vec[j]->nickname;
-                    if (j != a[i].getusercount() - 1)
-                        nicklist += ' ';
-                }
-                std::string whoreturn;
-                std::string whoend;
-                for (size_t j = 0; j < vec.size(); j++)
-                {
-                    whoreturn = whobase;
-                    whoreturn += vec[j]->nickname + " = " + split[0] + " :"+ nicklist + "\r\n";
-                    send(vec[j]->socket, whoreturn.c_str(), whoreturn.length(), 0);
-                    whoend = ":" + hostname + " 366 " + vec[j]->nickname + " " + split[0] + " :End of /NAMES list\r\n";
-                    send(vec[j]->socket, whoend.c_str(), whoend.length(), 0);
-                }
-            return 1;
-        }
-    }
-    if (i == a.size())
-    {
-        std::string joinfail = ":" + hostname + " 403 " + usr.nickname + " " + params + " :No such channel" + "\r\n";
-        send(usr.socket, joinfail.c_str(), joinfail.length(), 0);
-    }
-    return 1;
-}
 
-void    modeapply(Channel *a, std::string modes, std::vector<std::string> params, std::vector<Channel> &b)
-{
-    size_t operationcount = 0;
-    size_t operationdone = 0;
-    size_t paramscount = 0;
-    bool    plusminus;
-    for (size_t i = 0; modes[i]; i++)
-    {
-        if (modes[i] != '+' && modes[i] != '-')
-            operationcount++;
-    }
-    for (size_t i = 0; modes[i] && operationdone < operationcount; i++)
-    {
-        if (modes[i] == '+')
-            plusminus = 1;
-        else if (modes[i] == '-')
-            plusminus = 0;
-        else
-        {
-            if (plusminus)
-            {
-                if (modes[i] == 'i')
-                    a->changemode("+i");
-                else if (modes[i] == 't')
-                    a->changemode("+t");
-                else if (modes[i] == 'k' && paramscount < params.size())
-                {
-                    a->changemode("+k");
-                    a->changepw(params[paramscount++]);
-                }
-                else if (modes[i] == 'o' && paramscount < params.size())
-                {
-                    size_t k = 0;
-                    std::vector<Client *> usrlst = a->getusers();
-                    for (;k < usrlst.size(); k++)
-                    {
-                        if (usrlst[k]->nickname == params[paramscount])
-                        {
-                            a->addoperator(usrlst[k]);
-                            paramscount++;
-                            who(*usrlst[k], a->getid(), b);
-                            break;
-                        }
-                    }
-                    if (k == usrlst.size())
-                    {
-                        // TODO : No such user
-                    }
-                }
-                else if (modes[i] == 'l' && paramscount < params.size())
-                {
-                    a->changemode("+l");
-                    a->changeul(myStoi(params[paramscount++]));
-                }
-            }
-            else
-            {
-                if (modes[i] == 'i')
-                    a->changemode("-i");
-                else if (modes[i] == 't')
-                    a->changemode("-t");
-                else if (modes[i] == 'k')
-                    a->changemode("-k");
-                else if (modes[i] == 'o' && paramscount < params.size())
-                {
-                    size_t k = 0;
-                    std::vector<Client *> usrlst = a->getusers();
-                    for (;k < usrlst.size(); k++)
-                    {
-                        if (usrlst[k]->nickname == params[paramscount])
-                        {
-                            a->deloperator(*(usrlst[k]));
-                            paramscount++;
-                            who(*usrlst[k], a->getid(), b);
-                            break;
-                        }
-                    }
-                    if (k == usrlst.size())
-                    {
-                        // TODO : No such user
-                    }
-                }
-                else if (modes[i] == 'l')
-                {
-                    a->changemode("-l");
-                }
-            }
-            operationdone++;
-        }
-    }
-}
-
-void mode(Client *usr, std::string params, std::vector<Channel> &a)
-{
-    size_t i = 0;
-    std::vector<std::string> split = splitString(params, ' ');
-    std::string hostname = IRCHOSTNAME;
-    for (; i < a.size(); i++)
-    {
-        if (a[i].getid() == split[0])
-        {
-            std::string modes = a[i].getmode();
-            if (split.size() > 1)
-            {
-                if (a[i].isoperator(*usr))
-                {
-                    std::vector<std::string> modeparams;
-                    for (size_t j = 2; j < split.size(); j++)
-                        modeparams.push_back(split[j]);
-                    modeapply(&(a[i]), split[1], modeparams, a);
-                }
-                else
-                {
-                    std::string joinfail = ":" + hostname + " 482 " + usr->nickname + " " + split[0] + " :You're not channel operator" + "\r\n";
-                    send(usr->socket, joinfail.c_str(), joinfail.length(), 0);
-                }
-            }
-            else
-            {
-                std::string newmodes = "";
-                if (modes[0])
-                    newmodes += "+" + modes;
-                std::string modereturn = ":" + hostname + " 324 " + usr->nickname + " " + split[0] + " :" + newmodes + "\r\n";
-                std::cout << modereturn << std::endl;
-                send(usr->socket, modereturn.c_str(), modereturn.length(), 0);
-            }
-            return;
-        }
-    }
-    if (i == a.size())
-    {
-        std::string joinfail = ":" + hostname + " 403 " + usr->nickname + " " + split[0] + " :No such channel" + "\r\n";
-        send(usr->socket, joinfail.c_str(), joinfail.length(), 0);
-    }
-}
-
-
-void join(Client *usr, std::string params, std::vector<Channel> &a)
-{
-    size_t i = 0;
-
-    std::vector<std::string> split = splitString(params, ' ');
-    std::string hostname = IRCHOSTNAME;
-    params = split[0];
-    std::string pw = "";
-    if (split.size() > 1)
-        pw = split[1];
-    std::string client = ":";
-    client += usr->nickname + "!" + usr->username + "@" + usr->hostname + " ";
-    for (; i < a.size(); i++)
-    {
-        if (a[i].getid() == params)
-        {
-            if (isallowed(*usr, a[i], pw))
-            {
-                std::string topic = ":" + hostname + " 332 " + usr->nickname + " " + params+ " :" + a[i].gettopic() + "\r\n";
-                std::string joinsuccess = client + " JOIN " + params + "\r\n";
-                send(usr->socket, joinsuccess.c_str(), joinsuccess.length(), 0);
-                send(usr->socket, topic.c_str(), topic.length(), 0);
-                mode(usr, params, a);
-                a[i].adduser(usr);
-                if (a[i].getusers().size() == 1)
-                    a[i].addoperator(usr);
-                who(*usr, params, a);
-            }
-            return;
-        }
-    }
-    if (i == a.size())
-    {
-        std::string joinfail = ":" + hostname + " 403 " + usr->nickname + " " + params + " :No such channel" + "\r\n";
-        send(usr->socket, joinfail.c_str(), joinfail.length(), 0);
-    }
-}
-
-bool msg(Client *usr, std::string params, std::vector<Channel> &a)
-{
-    if (params[0] != '#')
-        return (false);
-    size_t i = 0;
-    std::string hostname = IRCHOSTNAME;
-    std::vector<std::string> split = splitString(params, ' ');
-    std::string allmessage;
-    for (size_t j = 1; j < split.size(); j++)
-    {
-        if (j != 1)
-            allmessage += " ";
-        allmessage += split[j];
-    }
-    std::string msgnotif = ":" + usr->nickname + "!" + usr->username + "@" + usr->hostname + " PRIVMSG " + split[0] + " " + allmessage + "\r\n";
-    ssize_t bytesread;
-    for (; i < a.size(); i++)
-    {
-        if (a[i].getid() == split[0])
-        {
-                std::vector<Client *> vec= a[i].getusers();
-                for (size_t j = 0; j < a[i].getusercount(); j++)
-                {
-                    if (vec[j]->socket != usr->socket)
-                    {
-                        int error = 0;
-                        socklen_t len = sizeof(error);
-                        int retval = getsockopt(vec[j]->socket, SOL_SOCKET, SO_ERROR, &error, &len);
-                        if (retval == 0 && error == 0) {
-                            std::cerr << "Socket for " << vec[j]->nickname << " is valid." << std::endl;
-                        } else {
-                            std::cerr << "Socket error for " << vec[j]->nickname << ": " << strerror(error) << std::endl;
-                        }
-                        bytesread = send(vec[j]->socket, msgnotif.c_str(), msgnotif.length(), 0);
-                        if (bytesread == -1) {
-                            std::cerr << "Error sending PRIVMSG";
-                        } else {
-                            std::cerr << "Sent " << bytesread << " bytes to " << vec[j]->nickname << " (Socket: " << vec[j]->socket << ")" << std::endl;
-                        }
-                    }
-                }
-                return (1);
-        }
-    }
-    if (i == a.size())
-    {
-        std::string joinfail = ":" + hostname + " 403 " + usr->nickname + " " + params + " :No such channel" + "\r\n";
-        send(usr->socket, joinfail.c_str(), joinfail.length(), 0);
-    }
-    return (1);
-}
-
-void part(Client *usr, std::string params, std::vector<Channel> &a)
-{
-    size_t i = 0;
-    size_t k = 0;
-
-    std::vector<std::string> split = splitString(params, ',');
-    std::vector<Client *> usrlist;
-    std::string hostname = IRCHOSTNAME;
-    std::string client = ":";
-    client += usr->nickname + "!" + usr->username + "@" + usr->hostname + " ";
-    std::string partreturn;
-    for (size_t j = 0; j < split.size(); j++)
-    {
-        partreturn = client;
-        std::vector<std::string> split2 = splitString(split[j], ' ');
-        for (i = 0; i < a.size(); i++)
-        {
-            if (a[i].getid() == split2[j])
-            {
-                usrlist = a[i].getusers();
-                for (k = 0; k < usrlist.size(); k++)
-                {
-                    if (usrlist[k]->socket == usr->socket)
-                    {
-                        partreturn += "PART " + split[j] + "\r\n";
-                        send(usr->socket, partreturn.c_str(), partreturn.length(), 0);
-                        a[i].deluser(*usr);
-                        who(*usr, split2[0], a);
-                        break;
-                    }
-                }
-                if (k == usrlist.size())
-                {
-                    std::string joinfail = ":" + hostname + " 442 " + usr->nickname + " " + params + " :You're not on that channel\r\n";
-                    send(usr->socket, joinfail.c_str(), joinfail.length(), 0);
-                }
-                break;
-            }
-        }
-        if (i == a.size())
-        {
-            std::string joinfail = ":" + hostname + " 403 " + usr->nickname + " " + params + " :No such channel" + "\r\n";
-            send(usr->socket, joinfail.c_str(), joinfail.length(), 0);
-        }
-    }
-}
-
-void topic(Client *usr, std::string params, std::vector<Channel> &a)
-{
-    size_t i = 0;
-
-    std::vector<std::string> split = splitString(params, ' ');
-    std::string hostname = IRCHOSTNAME;
-    params = split[0];
-    std::string newtopic = "";
-    if (split.size() > 1)
-    {
-        for (size_t l = 1; l < split.size(); l++)
-        {
-            newtopic += split[l];
-            if (l != split.size() - 1)
-                newtopic += ' ';
-        }
-    }
-    std::string client = ":";
-    client += usr->nickname + "!" + usr->username + "@" + usr->hostname + " ";
-    for (; i < a.size(); i++)
-    {
-        if (a[i].getid() == params)
-        {
-            if (newtopic != "")
-            {
-                if (a[i].isoperator(*usr) || !a[i].istopicprotected())
-                {
-                    a[i].changetopic(newtopic);
-                    return;
-                }
-                else
-                {
-                    std::string joinfail = ":" + hostname + " 482 " + usr->nickname + " " + split[0] + " :You're not channel operator" + "\r\n";
-                    send(usr->socket, joinfail.c_str(), joinfail.length(), 0);
-                    topic(usr, split[0], a);
-                    return;
-                }
-            }
-            else
-            {
-                std::string topic = ":" + hostname + " 332 " + usr->nickname + " " + params + " :" + a[i].gettopic() + "\r\n";
-                send(usr->socket, topic.c_str(), topic.length(), 0);
-                return;
-            }
-        }
-    }
-    if (i == a.size())
-    {
-        std::string joinfail = ":" + hostname + " 403 " + usr->nickname + " " + params + " :No such channel" + "\r\n";
-        send(usr->socket, joinfail.c_str(), joinfail.length(), 0);
-    }
-}
-
-void kick(Client *usr, std::string params, std::vector<Channel> &a)
-{
-    std::vector<std::string> split = splitString(params, ' ');
-    std::string hostname = IRCHOSTNAME;
-
-    // Ensure the correct number of parameters
-    if (split.size() < 2)
-    {
-        std::string error = ":" + hostname + " 461 " + usr->nickname + " KICK :Not enough parameters\r\n";
-        send(usr->socket, error.c_str(), error.length(), 0);
+    if (split.empty()) {
+        std::ostringstream error;
+        error << ":" << hostname << " 461 " << usr->nickname << " JOIN :Not enough parameters\r\n";
+        send(usr->socket, error.str().c_str(), error.str().length(), 0);
         return;
     }
 
-    std::string channelId = split[0];
-    std::string targetNickname = split[1];
-    std::string reason = split.size() > 2 ? params.substr(params.find(targetNickname) + targetNickname.length() + 1) : "No reason provided";
+    std::string channelName = split[0];
+    std::string password = (split.size() > 1) ? split[1] : "";
 
-    for (size_t i = 0; i < a.size(); i++)
-    {
-        if (a[i].getid() == channelId)
-        {
-            // Check if the user is a channel operator
-            if (!a[i].isoperator(*usr))
-            {
-                std::string error = ":" + hostname + " 482 " + usr->nickname + " " + channelId + " :You're not channel operator\r\n";
-                send(usr->socket, error.c_str(), error.length(), 0);
+    for (size_t i = 0; i < channels.size(); i++) {
+        if (channels[i].getid() == channelName) {
+            if (!isallowed(*usr, channels[i], password)) {
+                std::ostringstream error;
+                error << ":" << hostname << " 474 " << usr->nickname << " " << channelName << " :Cannot join channel\r\n";
+                send(usr->socket, error.str().c_str(), error.str().length(), 0);
                 return;
             }
 
-            std::vector<Client *> users = a[i].getusers();
-            for (size_t j = 0; j < users.size(); j++)
-            {
-                if (users[j]->nickname == targetNickname)
-                {
-                    // Notify all users in the channel
-                    std::string kickMessage = ":" + usr->nickname + "!" + usr->username + "@" + usr->hostname + " KICK " + channelId + " " + targetNickname + " :" + reason + "\r\n";
-                    for (size_t k = 0; k < users.size(); k++)
-                    {
-                        send(users[k]->socket, kickMessage.c_str(), kickMessage.length(), 0);
-                    }
-
-                    // Remove the target user from the channel
-                    a[i].deluser(*users[j]);
-                    return;
-                }
+            channels[i].adduser(usr);
+            if (channels[i].getusers().size() == 1) {
+                channels[i].addoperator(usr);
             }
 
-            // Target user not found in the channel
-            std::string error = ":" + hostname + " 441 " + targetNickname + " " + channelId + " :They aren't on that channel\r\n";
-            send(usr->socket, error.c_str(), error.length(), 0);
+            std::ostringstream joinMsg;
+            joinMsg << ":" << usr->nickname << "!" << usr->username << "@" << usr->hostname << " JOIN " << channelName << "\r\n";
+            std::vector<Client*> users = channels[i].getusers();
+            for (size_t j = 0; j < users.size(); j++) {
+                send(users[j]->socket, joinMsg.str().c_str(), joinMsg.str().length(), 0);
+            }
+
+            std::ostringstream topicMsg;
+            topicMsg << ":" << hostname << " 332 " << usr->nickname << " " << channelName << " :" << channels[i].gettopic() << "\r\n";
+            send(usr->socket, topicMsg.str().c_str(), topicMsg.str().length(), 0);
+
+            std::ostringstream namesMsg;
+            namesMsg << ":" << hostname << " 353 " << usr->nickname << " = " << channelName << " :" << channels[i].getnicklist() << "\r\n";
+            send(usr->socket, namesMsg.str().c_str(), namesMsg.str().length(), 0);
+
+            std::ostringstream endNamesMsg;
+            endNamesMsg << ":" << hostname << " 366 " << usr->nickname << " " << channelName << " :End of /NAMES list\r\n";
+            send(usr->socket, endNamesMsg.str().c_str(), endNamesMsg.str().length(), 0);
+
             return;
         }
     }
 
-    // Channel not found
-    std::string error = ":" + hostname + " 403 " + usr->nickname + " " + channelId + " :No such channel\r\n";
-    send(usr->socket, error.c_str(), error.length(), 0);
+    std::ostringstream error;
+    error << ":" << hostname << " 403 " << usr->nickname << " " << channelName << " :No such channel\r\n";
+    send(usr->socket, error.str().c_str(), error.str().length(), 0);
 }
 
+// PART Command
+void part(Client* usr, std::string params, std::vector<Channel>& channels) {
+    std::string hostname = IRCHOSTNAME;
+    std::vector<std::string> split = splitString(params, ' ');
 
-bool handle_channel_command(Client *usr, std::string command, std::string params, std::vector<Channel> &channels)
-{
-    if (command == "JOIN")
-    {
-        join(usr, params, channels);
-        return true;
+    if (split.empty()) {
+        std::ostringstream error;
+        error << ":" << hostname << " 461 " << usr->nickname << " PART :Not enough parameters\r\n";
+        send(usr->socket, error.str().c_str(), error.str().length(), 0);
+        return;
     }
-    else if (command == "PART")
-    {
-        part(usr, params, channels);
-        return true;
+
+    std::string channelName = split[0];
+    for (size_t i = 0; i < channels.size(); i++) {
+        if (channels[i].getid() == channelName) {
+            std::vector<Client*> users = channels[i].getusers();
+            bool userFound = false;
+
+            for (size_t j = 0; j < users.size(); j++) {
+                if (users[j]->socket == usr->socket) {
+                    userFound = true;
+                    break;
+                }
+            }
+
+            if (!userFound) {
+                std::ostringstream fail;
+                fail << ":" << hostname << " 442 " << usr->nickname << " " << channelName << " :You're not on that channel\r\n";
+                send(usr->socket, fail.str().c_str(), fail.str().length(), 0);
+                return;
+            }
+
+            channels[i].deluser(*usr);
+
+            std::ostringstream partMsg;
+            partMsg << ":" << usr->nickname << "!" << usr->username << "@" << usr->hostname << " PART " << channelName << "\r\n";
+            std::vector<Client*> userslist = channels[i].getusers();
+            for (size_t j = 0; j < userslist.size(); j++) {
+                send(userslist[j]->socket, partMsg.str().c_str(), partMsg.str().length(), 0);
+            }
+            return;
+        }
     }
-    else if (command == "TOPIC")
-    {
-        topic(usr, params, channels);
-        return true;
+
+    std::ostringstream fail;
+    fail << ":" << hostname << " 403 " << usr->nickname << " " << channelName << " :No such channel\r\n";
+    send(usr->socket, fail.str().c_str(), fail.str().length(), 0);
+}
+
+// WHO Command
+bool who(Client usr, std::string params, std::vector<Channel>& channels) {
+    std::string hostname = IRCHOSTNAME;
+    std::vector<std::string> split = splitString(params, ' ');
+
+    if (split.size() > 1) {
+        std::ostringstream error;
+        error << ":" << hostname << " 461 " << usr.nickname << " WHO :Not enough parameters\r\n";
+        send(usr.socket, error.str().c_str(), error.str().length(), 0);
+        return false;
     }
-    else if (command == "KICK")
-    {
-        kick(usr, params, channels);
-        return true;
+
+    for (size_t i = 0; i < channels.size(); i++) {
+        if (channels[i].getid() == split[0]) {
+            std::vector<Client*> users = channels[i].getusers();
+            std::ostringstream nicklist;
+
+            for (size_t j = 0; j < users.size(); j++) {
+                if (channels[i].isoperator(*users[j])) {
+                    nicklist << "@";
+                }
+                nicklist << users[j]->nickname;
+                if (j < users.size() - 1) {
+                    nicklist << " ";
+                }
+            }
+
+            std::ostringstream whobase;
+            whobase << ":" << hostname << " 353 " << usr.nickname << " = " << split[0] << " :" << nicklist.str() << "\r\n";
+            send(usr.socket, whobase.str().c_str(), whobase.str().length(), 0);
+
+            std::ostringstream whoend;
+            whoend << ":" << hostname << " 366 " << usr.nickname << " " << split[0] << " :End of /NAMES list\r\n";
+            send(usr.socket, whoend.str().c_str(), whoend.str().length(), 0);
+
+            return true;
+        }
     }
-    else if (command == "MODE")
-    {
-        mode(usr, params, channels);
-        return true;
-    }
-    else if (command == "PRIVMSG")
-    {
-        return(msg(usr, params, channels));
-    }
+
+    std::ostringstream joinfail;
+    joinfail << ":" << hostname << " 403 " << usr.nickname << " " << params << " :No such channel\r\n";
+    send(usr.socket, joinfail.str().c_str(), joinfail.str().length(), 0);
     return false;
 }
 
+// KICK Command
+void kick(Client* usr, std::string params, std::vector<Channel>& channels) {
+    std::string hostname = IRCHOSTNAME;
+    std::vector<std::string> split = splitString(params, ' ');
+
+    if (split.size() < 2) {
+        std::ostringstream error;
+        error << ":" << hostname << " 461 " << usr->nickname << " KICK :Not enough parameters\r\n";
+        send(usr->socket, error.str().c_str(), error.str().length(), 0);
+        return;
+    }
+
+    std::string channelName = split[0];
+    std::string targetName = split[1];
+    std::string reason = (split.size() > 2) ? params.substr(params.find(targetName) + targetName.length() + 1) : "No reason provided";
+
+    for (size_t i = 0; i < channels.size(); i++) {
+        if (channels[i].getid() == channelName) {
+            if (!channels[i].isoperator(*usr)) {
+                std::ostringstream fail;
+                fail << ":" << hostname << " 482 " << usr->nickname << " " << channelName << " :You're not channel operator\r\n";
+                send(usr->socket, fail.str().c_str(), fail.str().length(), 0);
+                return;
+            }
+
+            std::vector<Client*> users = channels[i].getusers();
+            bool userFound = false;
+            for (size_t j = 0; j < users.size(); j++) {
+                if (users[j]->nickname == targetName) {
+                    userFound = true;
+
+                    std::ostringstream kickMsg;
+                    kickMsg << ":" << usr->nickname << "!" << usr->username << "@" << usr->hostname << " KICK " << channelName << " " << targetName << " :" << reason << "\r\n";
+                    std::vector<Client*> userslist = channels[i].getusers();
+                    for (size_t j = 0; j < userslist.size(); j++) {
+                        send(userslist[j]->socket, kickMsg.str().c_str(), kickMsg.str().length(), 0);
+            }
+
+                    channels[i].deluser(*users[j]);
+                    break;
+                }
+            }
+
+            if (!userFound) {
+                std::ostringstream error;
+                error << ":" << hostname << " 441 " << targetName << " " << channelName << " :They aren't on that channel\r\n";
+                send(usr->socket, error.str().c_str(), error.str().length(), 0);
+            }
+            return;
+        }
+    }
+
+    std::ostringstream error;
+    error << ":" << hostname << " 403 " << usr->nickname << " " << channelName << " :No such channel\r\n";
+    send(usr->socket, error.str().c_str(), error.str().length(), 0);
+}
+
+// Command Handler
+bool handle_channel_command(Client* usr, std::string command, std::string params, std::vector<Channel>& channels) {
+    if (command == "JOIN") {
+        join(usr, params, channels);
+        return true;
+    } else if (command == "PART") {
+        part(usr, params, channels);
+        return true;
+    } else if (command == "TOPIC") {
+        // Implement similar to others
+        return true;
+    } else if (command == "KICK") {
+        kick(usr, params, channels);
+        return true;
+    } else if (command == "MODE") {
+        // Implement as needed
+        return true;
+    } else if (command == "PRIVMSG") {
+        // Implement as needed
+        return true;
+    }
+    return false;
+}

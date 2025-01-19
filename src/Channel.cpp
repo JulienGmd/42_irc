@@ -1,4 +1,5 @@
 #include "Channel.hpp"
+#include <sstream>
 #include "_config.hpp"
 
 Channel::Channel(std::string name) : _id(name), topic(""), userlimit(0), password(""){
@@ -132,6 +133,7 @@ void Channel::deluser(Client user)
         {
             std::cerr << "Erasing \'" << user.nickname << "\' from " << this->_id << std::endl;
             users.erase(it);
+            return;
         }
 }
 
@@ -196,4 +198,22 @@ size_t              Channel::getuserlimit()
 std::string         Channel::getpw()
 {
     return(password);
+}
+
+std::string Channel::getnicklist(){
+    std::ostringstream nicklist;
+
+    for (size_t i = 0; i < users.size(); i++) {
+        if (isoperator(*users[i])) {
+            nicklist << "@";
+        }
+        nicklist << users[i]->nickname;
+
+        // Add a space after each nickname, except the last one
+        if (i < users.size() - 1) {
+            nicklist << " ";
+        }
+    }
+
+    return nicklist.str();
 }

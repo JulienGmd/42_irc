@@ -41,6 +41,7 @@ class Channel
         bool                adduser(Client * user);
         bool                addoperator(Client * user);
         bool                istopicprotected();
+        std::string         getnicklist();
         void                deluser(Client user);
         void                deloperator(Client user);
         bool                isoperator(Client user);
