@@ -40,6 +40,70 @@ void                Channel::changeul(size_t ul)
     userlimit = ul;
 }
 
+bool Channel::hasuser(Client& usr) {
+    for (size_t i = 0; i < users.size(); i++) {
+        if (users[i]->socket == usr.socket) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void Channel::applymode(const std::string& modes, const std::vector<std::string>& params, Client* usr, std::vector<Channel>& channels) {
+    (void)usr;      // Suppress unused parameter warning
+    (void)channels; // Suppress unused parameter warning
+    bool addMode = true; // '+' means add mode, '-' means remove mode
+    size_t paramIndex = 0;
+
+    for (size_t i = 0; i < modes.size(); i++) {
+        char mode = modes[i];
+
+        if (mode == '+') {
+            addMode = true;
+        } else if (mode == '-') {
+            addMode = false;
+        } else if (mode == 'i') {
+            changemode(addMode ? "+i" : "-i");
+        } else if (mode == 't') {
+            changemode(addMode ? "+t" : "-t");
+        } else if (mode == 'k') {
+            if (addMode && paramIndex < params.size()) {
+                changemode("+k");
+                changepw(params[paramIndex++]);
+            } else {
+                changemode("-k");
+                changepw("");
+            }
+        } else if (mode == 'l') {
+            if (addMode && paramIndex < params.size()) {
+                changemode("+l");
+                changeul(myStoi(params[paramIndex++]));
+            } else {
+                changemode("-l");
+                changeul(0); // Remove user limit
+            }
+        } else if (mode == 'o' && paramIndex < params.size()) {
+            std::string targetNick = params[paramIndex++];
+            Client* targetUser = NULL;
+
+            for (size_t j = 0; j < users.size(); j++) {
+                if (users[j]->nickname == targetNick) {
+                    targetUser = users[j];
+                    break;
+                }
+            }
+
+            if (targetUser) {
+                if (addMode) {
+                    addoperator(targetUser);
+                } else {
+                    deloperator(*targetUser);
+                }
+            }
+        }
+    }
+}
+
 void        Channel::changemode(std::string mode)
 {
     size_t i = 1;
@@ -108,9 +172,10 @@ void    Channel::changetopic(std::string topic){
 
 bool Channel::adduser(Client * user)
 {
-    for (size_t i = 0; i < users.size(); i++)
+    for (size_t i = 0; i < users.size(); i++){
         if (users[i]->nickname == user->nickname)
             return (0);
+    }
     users.push_back(user);
     return (1);
 }

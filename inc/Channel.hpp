@@ -5,6 +5,8 @@
 #include "Client.hpp"
 #include <iostream>
 
+int myStoi(const std::string& str);
+
 class Channel
 {
     typedef struct s_modes{
@@ -32,6 +34,7 @@ class Channel
         std::string         gettopic();
         void                changetopic(std::string topic);
         void                changemode(std::string);
+        void                applymode(const std::string& modes, const std::vector<std::string>& params, Client* usr, std::vector<Channel>& channels);
         void                changepw(std::string pw);
         void                changeul(size_t ul);
         std::string         getmode();
@@ -42,6 +45,7 @@ class Channel
         bool                addoperator(Client * user);
         bool                istopicprotected();
         std::string         getnicklist();
+        bool                hasuser(Client& usr);
         void                deluser(Client user);
         void                deloperator(Client user);
         bool                isoperator(Client user);

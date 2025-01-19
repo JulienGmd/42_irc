@@ -278,26 +278,180 @@ void kick(Client* usr, std::string params, std::vector<Channel>& channels) {
     send(usr->socket, error.str().c_str(), error.str().length(), 0);
 }
 
-// Command Handler
+void topic(Client* usr, std::string params, std::vector<Channel>& channels) {
+    std::string hostname = IRCHOSTNAME;
+    std::vector<std::string> split = splitString(params, ' ');
+
+    if (split.empty()) {
+        std::ostringstream error;
+        error << ":" << hostname << " 461 " << usr->nickname << " TOPIC :Not enough parameters\r\n";
+        send(usr->socket, error.str().c_str(), error.str().length(), 0);
+        return;
+    }
+
+    std::string channelName = split[0];
+    std::string newTopic = (split.size() > 1) ? params.substr(params.find(' ') + 1) : "";
+
+    for (size_t i = 0; i < channels.size(); i++) {
+        if (channels[i].getid() == channelName) {
+            if (!channels[i].isoperator(*usr) && channels[i].istopicprotected() && !newTopic.empty()) {
+                std::ostringstream error;
+                error << ":" << hostname << " 482 " << usr->nickname << " " << channelName << " :You're not channel operator\r\n";
+                send(usr->socket, error.str().c_str(), error.str().length(), 0);
+                return;
+            }
+
+            if (newTopic.empty()) {
+                // Send current topic
+                std::ostringstream topicMsg;
+                topicMsg << ":" << hostname << " 332 " << usr->nickname << " " << channelName << " :" << channels[i].gettopic() << "\r\n";
+                send(usr->socket, topicMsg.str().c_str(), topicMsg.str().length(), 0);
+            } else {
+                // Change topic
+                channels[i].changetopic(newTopic);
+
+                std::ostringstream topicChange;
+                topicChange << ":" << usr->nickname << "!" << usr->username << "@" << usr->hostname << " TOPIC " << channelName << " :" << newTopic << "\r\n";
+
+                std::vector<Client*> users = channels[i].getusers();
+                for (size_t j = 0; j < users.size(); j++) {
+                    send(users[j]->socket, topicChange.str().c_str(), topicChange.str().length(), 0);
+                }
+            }
+            return;
+        }
+    }
+
+    std::ostringstream error;
+    error << ":" << hostname << " 403 " << usr->nickname << " " << channelName << " :No such channel\r\n";
+    send(usr->socket, error.str().c_str(), error.str().length(), 0);
+}
+
+void mode(Client* usr, std::string params, std::vector<Channel>& channels) {
+    std::string hostname = IRCHOSTNAME;
+    std::vector<std::string> split = splitString(params, ' ');
+
+    if (split.empty()) {
+        // Missing parameters
+        std::ostringstream error;
+        error << ":" << hostname << " 461 " << usr->nickname << " MODE :Not enough parameters\r\n";
+        send(usr->socket, error.str().c_str(), error.str().length(), 0);
+        return;
+    }
+
+    std::string channelName = split[0];
+    for (size_t i = 0; i < channels.size(); i++) {
+        if (channels[i].getid() == channelName) {
+            // If no additional parameters, just return the current mode
+            if (split.size() == 1) {
+                std::ostringstream modeMsg;
+                modeMsg << ":" << hostname << " 324 " << usr->nickname << " " << channelName << " :" << channels[i].getmode() << "\r\n";
+                send(usr->socket, modeMsg.str().c_str(), modeMsg.str().length(), 0);
+
+                std::ostringstream endModeMsg;
+                endModeMsg << ":" << hostname << " 329 " << usr->nickname << " " << channelName << " :" << time(NULL) << "\r\n";
+                send(usr->socket, endModeMsg.str().c_str(), endModeMsg.str().length(), 0);
+                return;
+            }
+
+            // Handle mode changes if there are more parameters
+            std::string modes = split[1];
+            std::vector<std::string> modeParams(split.begin() + 2, split.end());
+            channels[i].applymode(modes, modeParams, usr, channels);
+
+            // Notify all users in the channel about the mode change
+            std::ostringstream notifyMsg;
+            notifyMsg << ":" << usr->nickname << "!" << usr->username << "@" << usr->hostname << " MODE " << channelName << " " << modes;
+            for (size_t j = 0; j < modeParams.size(); j++) {
+                notifyMsg << " " << modeParams[j];
+            }
+            notifyMsg << "\r\n";
+
+            std::vector<Client*> users = channels[i].getusers();
+            for (size_t j = 0; j < users.size(); j++) {
+                send(users[j]->socket, notifyMsg.str().c_str(), notifyMsg.str().length(), 0);
+            }
+
+            return;
+        }
+    }
+
+    // Channel not found
+    std::ostringstream error;
+    error << ":" << hostname << " 403 " << usr->nickname << " " << channelName << " :No such channel\r\n";
+    send(usr->socket, error.str().c_str(), error.str().length(), 0);
+}
+
+
+
+
+void privmsg(Client* usr, std::string params, std::vector<Channel>& channels) {
+    std::string hostname = IRCHOSTNAME;
+    std::vector<std::string> split = splitString(params, ' ');
+
+    if (split.size() < 2) {
+        std::ostringstream error;
+        error << ":" << hostname << " 461 " << usr->nickname << " PRIVMSG :Not enough parameters\r\n";
+        send(usr->socket, error.str().c_str(), error.str().length(), 0);
+        return;
+    }
+
+    std::string target = split[0];
+    std::string message = params.substr(params.find(' ') + 1);
+
+    if (target[0] == '#') {
+        // Message to a channel
+        for (size_t i = 0; i < channels.size(); i++) {
+            if (channels[i].getid() == target) {
+                if (!channels[i].hasuser(*usr)) {
+                    std::ostringstream error;
+                    error << ":" << hostname << " 404 " << usr->nickname << " " << target << " :Cannot send to channel\r\n";
+                    send(usr->socket, error.str().c_str(), error.str().length(), 0);
+                    return;
+                }
+
+                std::ostringstream msgNotif;
+                msgNotif << ":" << usr->nickname << "!" << usr->username << "@" << usr->hostname << " PRIVMSG " << target << " :" << message << "\r\n";
+
+                std::vector<Client*> users = channels[i].getusers();
+                for (size_t j = 0; j < users.size(); j++) {
+                    if (users[j]->socket != usr->socket) {
+                        send(users[j]->socket, msgNotif.str().c_str(), msgNotif.str().length(), 0);
+                    }
+                }
+                return;
+            }
+        }
+
+        std::ostringstream error;
+        error << ":" << hostname << " 403 " << usr->nickname << " " << target << " :No such channel\r\n";
+        send(usr->socket, error.str().c_str(), error.str().length(), 0);
+        return;
+    } else {
+        // Message to another user (not implemented in this scope)
+        std::ostringstream error;
+        error << ":" << hostname << " 401 " << usr->nickname << " " << target << " :No such nick/channel\r\n";
+        send(usr->socket, error.str().c_str(), error.str().length(), 0);
+    }
+}
+
+
 bool handle_channel_command(Client* usr, std::string command, std::string params, std::vector<Channel>& channels) {
     if (command == "JOIN") {
         join(usr, params, channels);
-        return true;
     } else if (command == "PART") {
         part(usr, params, channels);
-        return true;
     } else if (command == "TOPIC") {
-        // Implement similar to others
-        return true;
+        topic(usr, params, channels);
     } else if (command == "KICK") {
         kick(usr, params, channels);
-        return true;
     } else if (command == "MODE") {
-        // Implement as needed
-        return true;
+        mode(usr, params, channels);
     } else if (command == "PRIVMSG") {
-        // Implement as needed
-        return true;
+        privmsg(usr, params, channels);
+    } else {
+        return false;
     }
-    return false;
+    return true;
 }
+
