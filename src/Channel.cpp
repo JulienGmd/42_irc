@@ -1,4 +1,5 @@
 #include "Channel.hpp"
+#include "_config.hpp"
 
 Channel::Channel(std::string name) : _id(name), topic(""), userlimit(0), password(""){
     modes.i = 0;
@@ -83,8 +84,25 @@ std::string    Channel::gettopic()
     return (topic);
 }
 
+bool    Channel::istopicprotected()
+{
+    if (modes.t)
+        return true;
+    return false;
+}
+
 void    Channel::changetopic(std::string topic){
     this->topic = topic;
+    std::string hostname = IRCHOSTNAME;
+    std::string whobase = ":" + hostname + " 332 ";
+    std::string whoreturn;
+    std::vector<Client *> vec = users;
+    for (size_t j = 0; j < vec.size(); j++)
+    {
+        whoreturn = whobase;
+        whoreturn += vec[j]->nickname + " " + _id + " :" + topic + "\r\n";
+        send(vec[j]->socket, whoreturn.c_str(), whoreturn.length(), 0);
+    }
 }
 
 bool Channel::adduser(Client * user)

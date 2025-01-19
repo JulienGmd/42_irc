@@ -40,6 +40,7 @@ class Channel
         std::string         getpw();
         bool                adduser(Client * user);
         bool                addoperator(Client * user);
+        bool                istopicprotected();
         void                deluser(Client user);
         void                deloperator(Client user);
         bool                isoperator(Client user);

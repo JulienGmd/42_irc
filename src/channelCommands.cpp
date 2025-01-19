@@ -75,96 +75,6 @@ bool isallowed(Client usr, Channel chan, std::string pw)
     return (1);
 }
 
-void    modeapply(Channel *a, std::string modes, std::vector<std::string> params)
-{
-    size_t operationcount = 0;
-    size_t operationdone = 0;
-    size_t paramscount = 0;
-    bool    plusminus;
-    for (size_t i = 0; modes[i]; i++)
-    {
-        if (modes[i] != '+' && modes[i] != '-')
-            operationcount++;
-    }
-    for (size_t i = 0; modes[i] && operationdone < operationcount; i++)
-    {
-        if (modes[i] == '+')
-            plusminus = 1;
-        else if (modes[i] == '-')
-            plusminus = 0;
-        else
-        {
-            if (plusminus)
-            {
-                if (modes[i] == 'i')
-                    a->changemode("+i");
-                else if (modes[i] == 't')
-                    a->changemode("+t");
-                else if (modes[i] == 'k' && paramscount < params.size())
-                {
-                    a->changemode("+k");
-                    a->changepw(params[paramscount++]);
-                }
-                else if (modes[i] == 'o' && paramscount < params.size())
-                {
-                    size_t k = 0;
-                    std::vector<Client *> usrlst = a->getusers();
-                    for (;k < usrlst.size(); k++)
-                    {
-                        if (usrlst[k]->nickname == params[paramscount])
-                        {
-                            a->addoperator(usrlst[k]);
-                            paramscount++;
-                            break;
-                        }
-                    }
-                    if (k == usrlst.size())
-                    {
-                        // TODO : No such user
-                    }
-                }
-                else if (modes[i] == 'l' && paramscount < params.size())
-                {
-                    a->changemode("+l");
-                    a->changeul(myStoi(params[paramscount++]));
-                }
-            }
-            else
-            {
-                if (modes[i] == 'i')
-                    a->changemode("-i");
-                else if (modes[i] == 't')
-                    a->changemode("-t");
-                else if (modes[i] == 'k')
-                    a->changemode("-k");
-                else if (modes[i] == 'o' && paramscount < params.size())
-                {
-                    size_t k = 0;
-                    std::vector<Client *> usrlst = a->getusers();
-                    for (;k < usrlst.size(); k++)
-                    {
-                        if (usrlst[k]->nickname == params[paramscount])
-                        {
-                            a->deloperator(*(usrlst[k]));
-                            paramscount++;
-                            break;
-                        }
-                    }
-                    if (k == usrlst.size())
-                    {
-                        // TODO : No such user
-                    }
-                }
-                else if (modes[i] == 'l')
-                {
-                    a->changemode("-l");
-                }
-            }
-            operationdone++;
-        }
-    }
-}
-
 bool who(Client usr, std::string params, std::vector<Channel> &a)
 {
     size_t i = 0;
@@ -208,6 +118,98 @@ bool who(Client usr, std::string params, std::vector<Channel> &a)
     return 1;
 }
 
+void    modeapply(Channel *a, std::string modes, std::vector<std::string> params, std::vector<Channel> &b)
+{
+    size_t operationcount = 0;
+    size_t operationdone = 0;
+    size_t paramscount = 0;
+    bool    plusminus;
+    for (size_t i = 0; modes[i]; i++)
+    {
+        if (modes[i] != '+' && modes[i] != '-')
+            operationcount++;
+    }
+    for (size_t i = 0; modes[i] && operationdone < operationcount; i++)
+    {
+        if (modes[i] == '+')
+            plusminus = 1;
+        else if (modes[i] == '-')
+            plusminus = 0;
+        else
+        {
+            if (plusminus)
+            {
+                if (modes[i] == 'i')
+                    a->changemode("+i");
+                else if (modes[i] == 't')
+                    a->changemode("+t");
+                else if (modes[i] == 'k' && paramscount < params.size())
+                {
+                    a->changemode("+k");
+                    a->changepw(params[paramscount++]);
+                }
+                else if (modes[i] == 'o' && paramscount < params.size())
+                {
+                    size_t k = 0;
+                    std::vector<Client *> usrlst = a->getusers();
+                    for (;k < usrlst.size(); k++)
+                    {
+                        if (usrlst[k]->nickname == params[paramscount])
+                        {
+                            a->addoperator(usrlst[k]);
+                            paramscount++;
+                            who(*usrlst[k], a->getid(), b);
+                            break;
+                        }
+                    }
+                    if (k == usrlst.size())
+                    {
+                        // TODO : No such user
+                    }
+                }
+                else if (modes[i] == 'l' && paramscount < params.size())
+                {
+                    a->changemode("+l");
+                    a->changeul(myStoi(params[paramscount++]));
+                }
+            }
+            else
+            {
+                if (modes[i] == 'i')
+                    a->changemode("-i");
+                else if (modes[i] == 't')
+                    a->changemode("-t");
+                else if (modes[i] == 'k')
+                    a->changemode("-k");
+                else if (modes[i] == 'o' && paramscount < params.size())
+                {
+                    size_t k = 0;
+                    std::vector<Client *> usrlst = a->getusers();
+                    for (;k < usrlst.size(); k++)
+                    {
+                        if (usrlst[k]->nickname == params[paramscount])
+                        {
+                            a->deloperator(*(usrlst[k]));
+                            paramscount++;
+                            who(*usrlst[k], a->getid(), b);
+                            break;
+                        }
+                    }
+                    if (k == usrlst.size())
+                    {
+                        // TODO : No such user
+                    }
+                }
+                else if (modes[i] == 'l')
+                {
+                    a->changemode("-l");
+                }
+            }
+            operationdone++;
+        }
+    }
+}
+
 void mode(Client *usr, std::string params, std::vector<Channel> &a)
 {
     size_t i = 0;
@@ -225,12 +227,11 @@ void mode(Client *usr, std::string params, std::vector<Channel> &a)
                     std::vector<std::string> modeparams;
                     for (size_t j = 2; j < split.size(); j++)
                         modeparams.push_back(split[j]);
-                    modeapply(&(a[i]), split[1], modeparams);
+                    modeapply(&(a[i]), split[1], modeparams, a);
                 }
                 else
                 {
-                    //TODO : NO rights RPL 481
-                    std::string joinfail = ":" + hostname + " 481 " + usr->nickname + " :Permission Denied- You're not an IRC operator" + "\r\n";
+                    std::string joinfail = ":" + hostname + " 482 " + usr->nickname + " " + split[0] + " :You're not channel operator" + "\r\n";
                     send(usr->socket, joinfail.c_str(), joinfail.length(), 0);
                 }
             }
@@ -243,7 +244,6 @@ void mode(Client *usr, std::string params, std::vector<Channel> &a)
                 std::cout << modereturn << std::endl;
                 send(usr->socket, modereturn.c_str(), modereturn.length(), 0);
             }
-            who(*usr, split[0], a);
             return;
         }
     }
@@ -392,6 +392,59 @@ void part(Client *usr, std::string params, std::vector<Channel> &a)
     }
 }
 
+void topic(Client *usr, std::string params, std::vector<Channel> &a)
+{
+    size_t i = 0;
+
+    std::vector<std::string> split = splitString(params, ' ');
+    std::string hostname = IRCHOSTNAME;
+    params = split[0];
+    std::string newtopic = "";
+    if (split.size() > 1)
+    {
+        for (size_t l = 1; l < split.size(); l++)
+        {
+            newtopic += split[l];
+            if (l != split.size() - 1)
+                newtopic += ' ';
+        }
+    }
+    std::string client = ":";
+    client += usr->nickname + "!" + usr->username + "@" + usr->hostname + " ";
+    for (; i < a.size(); i++)
+    {
+        if (a[i].getid() == params)
+        {
+            if (newtopic != "")
+            {
+                if (a[i].isoperator(*usr) || !a[i].istopicprotected())
+                {
+                    a[i].changetopic(newtopic);
+                    return;
+                }
+                else
+                {
+                    std::string joinfail = ":" + hostname + " 482 " + usr->nickname + " " + split[0] + " :You're not channel operator" + "\r\n";
+                    send(usr->socket, joinfail.c_str(), joinfail.length(), 0);
+                    topic(usr, split[0], a);
+                    return;
+                }
+            }
+            else
+            {
+                std::string topic = ":" + hostname + " 332 " + usr->nickname + " " + params + " :" + a[i].gettopic() + "\r\n";
+                send(usr->socket, topic.c_str(), topic.length(), 0);
+                return;
+            }
+        }
+    }
+    if (i == a.size())
+    {
+        std::string joinfail = ":" + hostname + " 403 " + usr->nickname + " " + params + " :No such channel" + "\r\n";
+        send(usr->socket, joinfail.c_str(), joinfail.length(), 0);
+    }
+}
+
 bool handle_channel_command(Client *usr, std::string command, std::string params, std::vector<Channel> &channels)
 {
     if (command == "JOIN")
@@ -404,7 +457,12 @@ bool handle_channel_command(Client *usr, std::string command, std::string params
         part(usr, params, channels);
         return true;
     }
-    else if (command == "WHO")
+    else if (command == "TOPIC")
+    {
+        topic(usr, params, channels);
+        return true;
+    }
+    else if (command == "KICK")
     {
         return true;
     }
