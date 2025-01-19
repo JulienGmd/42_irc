@@ -230,6 +230,8 @@ void mode(Client *usr, std::string params, std::vector<Channel> &a)
                 else
                 {
                     //TODO : NO rights RPL 481
+                    std::string joinfail = ":" + hostname + " 481 " + usr->nickname + " :Permission Denied- You're not an IRC operator" + "\r\n";
+                    send(usr->socket, joinfail.c_str(), joinfail.length(), 0);
                 }
             }
             else
@@ -247,7 +249,7 @@ void mode(Client *usr, std::string params, std::vector<Channel> &a)
     }
     if (i == a.size())
     {
-        std::string joinfail = ":" + hostname + " 403 " + usr->nickname + " " + params + " :No such channel" + "\r\n";
+        std::string joinfail = ":" + hostname + " 403 " + usr->nickname + " " + split[0] + " :No such channel" + "\r\n";
         send(usr->socket, joinfail.c_str(), joinfail.length(), 0);
     }
 }
