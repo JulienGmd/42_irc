@@ -445,6 +445,66 @@ void topic(Client *usr, std::string params, std::vector<Channel> &a)
     }
 }
 
+void kick(Client *usr, std::string params, std::vector<Channel> &a)
+{
+    std::vector<std::string> split = splitString(params, ' ');
+    std::string hostname = IRCHOSTNAME;
+
+    // Ensure the correct number of parameters
+    if (split.size() < 2)
+    {
+        std::string error = ":" + hostname + " 461 " + usr->nickname + " KICK :Not enough parameters\r\n";
+        send(usr->socket, error.c_str(), error.length(), 0);
+        return;
+    }
+
+    std::string channelId = split[0];
+    std::string targetNickname = split[1];
+    std::string reason = split.size() > 2 ? params.substr(params.find(targetNickname) + targetNickname.length() + 1) : "No reason provided";
+
+    for (size_t i = 0; i < a.size(); i++)
+    {
+        if (a[i].getid() == channelId)
+        {
+            // Check if the user is a channel operator
+            if (!a[i].isoperator(*usr))
+            {
+                std::string error = ":" + hostname + " 482 " + usr->nickname + " " + channelId + " :You're not channel operator\r\n";
+                send(usr->socket, error.c_str(), error.length(), 0);
+                return;
+            }
+
+            std::vector<Client *> users = a[i].getusers();
+            for (size_t j = 0; j < users.size(); j++)
+            {
+                if (users[j]->nickname == targetNickname)
+                {
+                    // Notify all users in the channel
+                    std::string kickMessage = ":" + usr->nickname + "!" + usr->username + "@" + usr->hostname + " KICK " + channelId + " " + targetNickname + " :" + reason + "\r\n";
+                    for (size_t k = 0; k < users.size(); k++)
+                    {
+                        send(users[k]->socket, kickMessage.c_str(), kickMessage.length(), 0);
+                    }
+
+                    // Remove the target user from the channel
+                    a[i].deluser(*users[j]);
+                    return;
+                }
+            }
+
+            // Target user not found in the channel
+            std::string error = ":" + hostname + " 441 " + targetNickname + " " + channelId + " :They aren't on that channel\r\n";
+            send(usr->socket, error.c_str(), error.length(), 0);
+            return;
+        }
+    }
+
+    // Channel not found
+    std::string error = ":" + hostname + " 403 " + usr->nickname + " " + channelId + " :No such channel\r\n";
+    send(usr->socket, error.c_str(), error.length(), 0);
+}
+
+
 bool handle_channel_command(Client *usr, std::string command, std::string params, std::vector<Channel> &channels)
 {
     if (command == "JOIN")
@@ -464,6 +524,7 @@ bool handle_channel_command(Client *usr, std::string command, std::string params
     }
     else if (command == "KICK")
     {
+        kick(usr, params, channels);
         return true;
     }
     else if (command == "MODE")
