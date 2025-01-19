@@ -114,7 +114,6 @@ void Server::connect_client(fd_set &read_fds)
 	// Add the client to the list of clients
 	set_non_blocking(new_socket);
 	clients.push_back(Client(new_socket));
-
 	// Retrieve the hostname of the client
 	char host[NI_MAXHOST];
 	if (getnameinfo((struct sockaddr *)&address, addrlen, host, NI_MAXHOST, NULL, 0, 0) != 0)
@@ -212,6 +211,7 @@ bool Server::handle_client_messages(Client &client, const std::string &buffer, i
 		else if (command == "PRIVMSG")
 		{
 			// TODO send message to user or channel
+			std::cout << "TODO: USR PRIVMSG\n";
 		}
 		else if (command == "QUIT")
 			return false;

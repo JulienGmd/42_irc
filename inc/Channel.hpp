@@ -39,7 +39,9 @@ class Channel
         size_t              getuserlimit();
         std::string         getpw();
         bool                adduser(Client * user);
+        bool                addoperator(Client * user);
         void                deluser(Client user);
+        void                deloperator(Client user);
         bool                isoperator(Client user);
         bool                isinvited(Client user);
         bool                iscommand(std::string);

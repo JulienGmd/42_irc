@@ -96,6 +96,15 @@ bool Channel::adduser(Client * user)
     return (1);
 }
 
+bool Channel::addoperator(Client * user)
+{
+    for (size_t i = 0; i < operators.size(); i++)
+        if (operators[i]->nickname == user->nickname)
+            return (0);
+    operators.push_back(user);
+    return (1);
+}
+
 void Channel::deluser(Client user)
 {
     std::vector<Client *>::iterator it = users.begin();
@@ -105,6 +114,19 @@ void Channel::deluser(Client user)
         {
             std::cerr << "Erasing \'" << user.nickname << "\' from " << this->_id << std::endl;
             users.erase(it);
+        }
+}
+
+void Channel::deloperator(Client user)
+{
+    std::vector<Client *>::iterator it = operators.begin();
+
+    for (size_t i = 0; it != operators.end(); it++, i++)
+        if (operators[i]->nickname == user.nickname)
+        {
+            std::cerr << "Erasing \'" << user.nickname << "\' from " << this->_id  << " OPLIST"<< std::endl;
+            operators.erase(it);
+            break;
         }
 }
 
