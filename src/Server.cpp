@@ -152,6 +152,7 @@ void Server::handle_clients_messages(fd_set &read_fds)
 		memset(buffer, 0, BUFFER_SIZE);
 
 		// TODO gerer si le message est plus grand que BUFFER_SIZE
+		// TODO gerer si le message est coupe en plusieurs morceaux
 		int bytes_read = read(client.socket, buffer, BUFFER_SIZE);
 		std::cout << "Message from client ("
 				  << "Hostname: " << client.hostname
