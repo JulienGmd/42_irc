@@ -209,10 +209,40 @@ bool Server::handle_client_messages(Client &client, const std::string &buffer, i
 			client.username = params.substr(0, params.find(" "));
 		else if (command == "NICK")
 			client.nickname = params;
-		else if (command == "PRIVMSG")
+		else if (command == "PRVMSG")
 		{
-			// TODO send message to user or channel
-			std::cout << "TODO: USR PRIVMSG\n";
+			std::cout << "PRVMSG reach server.cpp" << std::endl;
+			// compare socket to found client
+			std::vector<Client> users = clients;
+			Client *target = NULL;
+			Client *sender = &client;
+			std::vector<std::string> splitParams = splitString(params, ' ');
+			for (size_t j = 0; j < users.size(); j++)
+			{
+				if (splitParams[0] == users[j].nickname)
+				{
+					target = &users[j];
+					break;
+				}
+			}
+			if (!target)
+			{
+				std::cout << "no target server.cpp" << std::endl;
+				// TODO Numeric reply
+				continue;
+			}
+			// <Client> PRIVMSG <Target> :<Message>
+			std::ostringstream msgNotif;
+			std::string msg = "";
+			for (size_t i = 1; i < splitParams.size(); i++)
+			{
+				msg += splitParams[i];
+				if (i != splitParams.size() - 1)
+					msg += " ";
+			}
+			msgNotif << ":" << sender->nickname << " " << " PRIVMSG " << target->nickname << " :" << msg << "\r\n";
+			std::cout << "msg: " << msgNotif.str() << std::endl;
+			send(target->socket, msgNotif.str().c_str(), msgNotif.str().length(), 0);
 		}
 		else if (command == "QUIT")
 			return false;

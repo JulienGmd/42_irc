@@ -445,7 +445,7 @@ void mode(Client *usr, std::string params, std::vector<Channel> &channels)
     send(usr->socket, error.str().c_str(), error.str().length(), 0);
 }
 
-void privmsg(Client *usr, std::string params, std::vector<Channel> &channels)
+bool privmsg(Client *usr, std::string params, std::vector<Channel> &channels)
 {
     std::string hostname = IRCHOSTNAME;
     std::vector<std::string> split = splitString(params, ' ');
@@ -455,9 +455,8 @@ void privmsg(Client *usr, std::string params, std::vector<Channel> &channels)
         std::ostringstream error;
         error << ":" << hostname << " 461 " << usr->nickname << " PRIVMSG :Not enough parameters\r\n";
         send(usr->socket, error.str().c_str(), error.str().length(), 0);
-        return;
+        return true;
     }
-
     std::string target = split[0];
     std::string message = params.substr(params.find(' ') + 1);
 
@@ -473,7 +472,7 @@ void privmsg(Client *usr, std::string params, std::vector<Channel> &channels)
                     std::ostringstream error;
                     error << ":" << hostname << " 404 " << usr->nickname << " " << target << " :Cannot send to channel\r\n";
                     send(usr->socket, error.str().c_str(), error.str().length(), 0);
-                    return;
+                    return true;
                 }
 
                 std::ostringstream msgNotif;
@@ -487,21 +486,22 @@ void privmsg(Client *usr, std::string params, std::vector<Channel> &channels)
                         send(users[j]->socket, msgNotif.str().c_str(), msgNotif.str().length(), 0);
                     }
                 }
-                return;
+                return true;
             }
         }
 
         std::ostringstream error;
         error << ":" << hostname << " 403 " << usr->nickname << " " << target << " :No such channel\r\n";
         send(usr->socket, error.str().c_str(), error.str().length(), 0);
-        return;
+        return true;
     }
     else
     {
+        return false;
         // Message to another user (not implemented in this scope)
-        std::ostringstream error;
-        error << ":" << hostname << " 401 " << usr->nickname << " " << target << " :No such nick/channel\r\n";
-        send(usr->socket, error.str().c_str(), error.str().length(), 0);
+        // std::ostringstream error;
+        // error << ":" << hostname << " 401 " << usr->nickname << " " << target << " :No such nick/channel\r\n";
+        // send(usr->socket, error.str().c_str(), error.str().length(), 0);
     }
 }
 
@@ -527,9 +527,9 @@ bool handle_channel_command(Client *usr, std::string command, std::string params
     {
         mode(usr, params, channels);
     }
-    else if (command == "PRIVMSG")
+    else if (command == "PRVMSG")
     {
-        privmsg(usr, params, channels);
+        return privmsg(usr, params, channels);
     }
     else
     {

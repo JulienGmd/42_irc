@@ -8,6 +8,8 @@
 #include <set>
 #include <string>
 #include <vector>
+#include <sstream>
+#include "channelCommands.hpp"
 
 class Server
 {
