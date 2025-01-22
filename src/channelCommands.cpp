@@ -527,7 +527,7 @@ bool handle_channel_command(Client *usr, std::string command, std::string params
     {
         mode(usr, params, channels);
     }
-    else if (command == "PRVMSG")
+    else if (command == "PRIVMSG")
     {
         return privmsg(usr, params, channels);
     }

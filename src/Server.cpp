@@ -191,7 +191,6 @@ bool Server::handle_client_messages(Client &client, const std::string &buffer, i
 
 		std::string command, params;
 		parse_command(message, command, params);
-		std::cout << "Command: " << command << ", Params: " << params << std::endl;
 
 		if (handle_channel_command(&client, command, params, channels))
 			continue;
@@ -209,9 +208,8 @@ bool Server::handle_client_messages(Client &client, const std::string &buffer, i
 			client.username = params.substr(0, params.find(" "));
 		else if (command == "NICK")
 			client.nickname = params;
-		else if (command == "PRVMSG")
+		else if (command == "PRIVMSG")
 		{
-			std::cout << "PRVMSG reach server.cpp" << std::endl;
 			// compare socket to found client
 			std::vector<Client> users = clients;
 			Client *target = NULL;
@@ -227,7 +225,6 @@ bool Server::handle_client_messages(Client &client, const std::string &buffer, i
 			}
 			if (!target)
 			{
-				std::cout << "no target server.cpp" << std::endl;
 				// TODO Numeric reply
 				continue;
 			}
@@ -240,8 +237,9 @@ bool Server::handle_client_messages(Client &client, const std::string &buffer, i
 				if (i != splitParams.size() - 1)
 					msg += " ";
 			}
+			if (msg[0] == ':')
+				msg = msg.substr(1, msg.size() - 1);
 			msgNotif << ":" << sender->nickname << " " << " PRIVMSG " << target->nickname << " :" << msg << "\r\n";
-			std::cout << "msg: " << msgNotif.str() << std::endl;
 			send(target->socket, msgNotif.str().c_str(), msgNotif.str().length(), 0);
 		}
 		else if (command == "QUIT")
