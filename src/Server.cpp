@@ -23,6 +23,10 @@ Server::Server(int port, const std::string &password)
 	a.changemode("+l");
 	a.changeul(1024);
 	this->channels.push_back(a);
+	Channel b("#actu");
+	b.changetopic("On parle d'actu ici");
+	b.changemode("+l");
+	this->channels.push_back(b);
 	start();
 	loop();
 }
