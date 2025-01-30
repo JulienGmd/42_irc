@@ -325,6 +325,7 @@ void kick(Client *usr, std::string params, std::vector<Channel> &channels)
     send(usr->socket, error.str().c_str(), error.str().length(), 0);
 }
 
+// TOPIC Command
 void topic(Client *usr, std::string params, std::vector<Channel> &channels)
 {
     std::string hostname = IRCHOSTNAME;
@@ -383,6 +384,7 @@ void topic(Client *usr, std::string params, std::vector<Channel> &channels)
     send(usr->socket, error.str().c_str(), error.str().length(), 0);
 }
 
+// MODE Command
 void mode(Client *usr, std::string params, std::vector<Channel> &channels)
 {
     std::string hostname = IRCHOSTNAME;
@@ -445,6 +447,7 @@ void mode(Client *usr, std::string params, std::vector<Channel> &channels)
     send(usr->socket, error.str().c_str(), error.str().length(), 0);
 }
 
+// PRIVMSG Command
 bool privmsg(Client *usr, std::string params, std::vector<Channel> &channels)
 {
     std::string hostname = IRCHOSTNAME;
@@ -505,6 +508,94 @@ bool privmsg(Client *usr, std::string params, std::vector<Channel> &channels)
     }
 }
 
+// INVITE Command
+bool invite(Client *usr, std::string params, std::vector<Channel> &channels)
+{
+    std::string hostname = IRCHOSTNAME;
+    std::vector<std::string> split = splitString(params, ' ');
+
+    if (split.size() < 2)
+    {
+        std::ostringstream error;
+        error << ":" << hostname << " 461 " << usr->nickname << " INVITE :Not enough parameters\r\n";
+        send(usr->socket, error.str().c_str(), error.str().length(), 0);
+        return false;
+    }
+
+    if (channels.size() == 0)
+    {
+        std::ostringstream error;
+        error << ":" << hostname << " 403 " << usr->nickname << " " << split[1] << " :there is no channel available\r\n";
+        std::cout << "channel not found" << std::endl;
+        return false;
+    }
+    std::string targetUser = split[0];
+    // retirer le hashtag
+    std::string targetChannel = split[1].substr(1);
+    Channel *channel = NULL;
+
+    for (size_t i = 0; i < channels.size() - 1; i++)
+    {
+        if (targetChannel == channels[i].gettopic())
+        {
+            *channel = channel[i];
+            break;
+        }
+    }
+    if (!channel)
+    {
+        std::ostringstream error;
+        error << ":" << hostname << " 403 " << usr->nickname << " " << targetChannel << " :No such channel\r\n";
+        send(usr->socket, error.str().c_str(), error.str().length(), 0);
+        return false;
+    }
+
+    // check if the user is operator
+    if (!channel->isoperator(*usr))
+    {
+        std::ostringstream error;
+        error << ":" << hostname << " 482 " << usr->nickname << " " << targetChannel << " :You're not channel operator\r\n";
+        send(usr->socket, error.str().c_str(), error.str().length(), 0);
+        return false;
+    }
+    // check if the user is on the channel
+    if (!channel->hasuser(*usr))
+    {
+        std::ostringstream error;
+        error << ":" << hostname << " 442 " << usr->nickname << " " << targetChannel << " :You're not on that channel\r\n";
+        send(usr->socket, error.str().c_str(), error.str().length(), 0);
+        return false;
+    }
+
+    // look fot the target user
+    Client *target = NULL;
+    for (size_t i = 0; i < channels.size() - 1; i++)
+    {
+        if (targetUser == channels[i].gettopic())
+        {
+            target = channels[i].getusers()[0];
+            break;
+        }
+    }
+    if (!target)
+    {
+        std::ostringstream error;
+        error << ":" << hostname << " 401 " << usr->nickname << " " << targetUser << " :No such nick/channel\r\n";
+        send(usr->socket, error.str().c_str(), error.str().length(), 0);
+        return false;
+    }
+    // send invite msg channel
+    std::ostringstream msg_invite;
+    msg_invite << ":" << usr->nickname << " INVITE " << target->nickname << " " << targetChannel << "\r\n";
+    send(target->socket, msg_invite.str().c_str(), msg_invite.str().length(), 0);
+
+    // confirm invite msg sent
+    std::ostringstream msg_confirm;
+    msg_confirm << ":" << hostname << " 341 " << usr->nickname << " " << target->nickname << " " << targetChannel << " :Invite sent\r\n";
+    send(usr->socket, msg_confirm.str().c_str(), msg_confirm.str().length(), 0);
+    return true;
+}
+
 bool handle_channel_command(Client *usr, std::string command, std::string params, std::vector<Channel> &channels)
 {
     if (command == "JOIN")
@@ -530,6 +621,10 @@ bool handle_channel_command(Client *usr, std::string command, std::string params
     else if (command == "PRIVMSG")
     {
         return privmsg(usr, params, channels);
+    }
+    else if (command == "INVITE")
+    {
+        return invite(usr, params, channels);
     }
     else
     {
