@@ -13,8 +13,6 @@
 #include <unistd.h> // TODO C
 #include <vector>
 
-// TODO password
-
 Server::Server(int port, const std::string &password)
 	: PORT(port), PASSWORD(password), server_fd(-1), address(), clients()
 {
@@ -25,7 +23,7 @@ Server::Server(int port, const std::string &password)
 	this->channels.push_back(a);
 	Channel b("#actu");
 	b.changetopic("On parle d'actu ici");
-	b.changemode("+l");
+	b.changemode("+i");
 	this->channels.push_back(b);
 	start();
 	loop();
@@ -78,7 +76,7 @@ void Server::loop()
 		// Add server_fd and client sockets to read_fds
 		FD_ZERO(&read_fds);
 		FD_SET(server_fd, &read_fds);
-		max_fd = server_fd; // TODO maxfd doit etre le plus grand socket ou num sockets ?
+		max_fd = server_fd;
 		for (size_t i = 0; i < clients.size(); i++)
 		{
 			FD_SET(clients[i].socket, &read_fds);
@@ -131,7 +129,15 @@ void Server::connect_client(fd_set &read_fds)
 std::vector<Client>::iterator Server::disconnect_client(const std::vector<Client>::iterator &it)
 {
 	// TODO disconnect from channel
+
 	Client &client = *it;
+	for (size_t i = 0; i < channels.size(); i++)
+	{
+		if (channels[i].hasuser(client))
+		{
+			part(&client, channels[i].getid(), channels);
+		}
+	}
 	close(client.socket);
 	std::cout << "Client disconnected: " << client.socket << std::endl;
 	return clients.erase(it);
@@ -214,37 +220,11 @@ bool Server::handle_client_messages(Client &client, const std::string &buffer, i
 			client.nickname = params;
 		else if (command == "PRIVMSG")
 		{
-			// compare socket to found client
-			std::vector<Client> users = clients;
-			Client *target = NULL;
-			Client *sender = &client;
-			std::vector<std::string> splitParams = splitString(params, ' ');
-			for (size_t j = 0; j < users.size(); j++)
-			{
-				if (splitParams[0] == users[j].nickname)
-				{
-					target = &users[j];
-					break;
-				}
-			}
-			if (!target)
-			{
-				// TODO Numeric reply
-				continue;
-			}
-			// <Client> PRIVMSG <Target> :<Message>
-			std::ostringstream msgNotif;
-			std::string msg = "";
-			for (size_t i = 1; i < splitParams.size(); i++)
-			{
-				msg += splitParams[i];
-				if (i != splitParams.size() - 1)
-					msg += " ";
-			}
-			if (msg[0] == ':')
-				msg = msg.substr(1, msg.size() - 1);
-			msgNotif << ":" << sender->nickname << " " << " PRIVMSG " << target->nickname << " :" << msg << "\r\n";
-			send(target->socket, msgNotif.str().c_str(), msgNotif.str().length(), 0);
+			prv_msg(client, params);
+		}
+		else if (command == "INVITE")
+		{
+			invite_cmd(client, params);
 		}
 		else if (command == "QUIT")
 			return false;
@@ -275,4 +255,129 @@ void Server::shutdown()
 	for (size_t i = 0; i < clients.size(); i++)
 		close(clients[i].socket);
 	close(server_fd);
+}
+
+void Server::invite_cmd(Client &client, std::string params)
+{
+	std::string hostname = IRCHOSTNAME;
+	std::vector<std::string> split = splitString(params, ' ');
+
+	// check if bad arguments
+	if (split.size() < 2)
+	{
+		std::ostringstream error;
+		error << ":" << hostname << " " << ERR_NEEDMOREPARAMS << " " << client.nickname << " INVITE :Not enough parameters\r\n";
+		send(client.socket, error.str().c_str(), error.str().length(), 0);
+		return;
+	}
+
+	std::string targetUser = split[0];
+	std::string targetChannel = split[1];
+	Channel *channel = NULL;
+
+	for (size_t i = 0; i < channels.size(); i++)
+	{
+		if (targetChannel == channels[i].getid())
+		{
+			channel = &channels[i];
+			break;
+		}
+	}
+
+	if (!channel)
+	{
+		std::ostringstream error;
+		error << ":" << hostname << " " << ERR_NOSUCHCHANNEL << " " << client.nickname << " " << targetChannel << " :No such channel\r\n";
+		send(client.socket, error.str().c_str(), error.str().length(), 0);
+		return;
+	}
+
+	// check if the user is on the channel
+	if (!channel->hasuser(client))
+	{
+		std::ostringstream error;
+		error << ":" << hostname << " " << ERR_NOTONCHANNEL << " " << client.nickname << " " << targetChannel << " :You're not on that channel\r\n";
+		send(client.socket, error.str().c_str(), error.str().length(), 0);
+		return;
+	}
+
+	// check if the user is operator
+	if (!channel->isoperator(client))
+	{
+		std::ostringstream error;
+		error << ":" << hostname << " " << ERR_CHANOPRIVSNEEDED << " " << client.nickname << " " << targetChannel << " :You're not channel operator\r\n";
+		send(client.socket, error.str().c_str(), error.str().length(), 0);
+		return;
+	}
+
+	// look for the target user is connected
+	// need list of clients
+	Client *target = NULL;
+	for (size_t i = 0; i < clients.size(); i++)
+	{
+		if (targetUser == clients[i].nickname)
+		{
+			target = &clients[i];
+			break;
+		}
+	}
+
+	if (!target)
+	{
+		std::ostringstream error;
+		error << ":" << hostname << " " << ERR_NOSUCHNICK << " " << client.nickname << " " << targetUser << " :No such nick/channel\r\n";
+		send(client.socket, error.str().c_str(), error.str().length(), 0);
+		return;
+	}
+
+	// send invite msg channel
+	std::ostringstream msg_invite;
+	msg_invite << ":" << client.nickname << " INVITE " << targetUser << " " << targetChannel << "\r\n";
+	send(target->socket, msg_invite.str().c_str(), msg_invite.str().length(), 0);
+
+	channel->addinvited(*target);
+
+	// confirm invite msg sent
+	std::ostringstream msg_confirm;
+	msg_confirm << ":" << hostname << " " << RPL_INVITING << "" << client.nickname << " " << targetUser << " " << targetChannel.substr(1) << " :Invite sent\r\n";
+	send(client.socket, msg_confirm.str().c_str(), msg_confirm.str().length(), 0);
+}
+
+void Server::prv_msg(Client &client, std::string params)
+{
+	std::string hostname = IRCHOSTNAME;
+
+	// compare socket to found client
+	std::vector<Client> users = clients;
+	Client *target = NULL;
+	Client *sender = &client;
+	std::vector<std::string> splitParams = splitString(params, ' ');
+	for (size_t j = 0; j < users.size(); j++)
+	{
+		if (splitParams[0] == users[j].nickname)
+		{
+			target = &users[j];
+			break;
+		}
+	}
+	if (!target)
+	{
+		std::ostringstream error;
+		error << ":" << hostname << " " << ERR_NOSUCHNICK << " " << client.nickname << " " << splitParams[0] << " :No such nick\r\n";
+		send(client.socket, error.str().c_str(), error.str().length(), 0);
+		return;
+	}
+	// <Client> PRIVMSG <Target> :<Message>
+	std::ostringstream msgNotif;
+	std::string msg = "";
+	for (size_t i = 1; i < splitParams.size(); i++)
+	{
+		msg += splitParams[i];
+		if (i != splitParams.size() - 1)
+			msg += " ";
+	}
+	if (msg[0] == ':')
+		msg = msg.substr(1, msg.size() - 1);
+	msgNotif << ":" << sender->nickname << " " << " PRIVMSG " << target->nickname << " :" << msg << "\r\n";
+	send(target->socket, msgNotif.str().c_str(), msgNotif.str().length(), 0);
 }

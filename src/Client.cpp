@@ -8,3 +8,8 @@ Client::Client(int socket)
 	  hostname()
 {
 }
+
+bool Client::is_connected()
+{
+	return socket != -1;
+}

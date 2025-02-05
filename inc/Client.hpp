@@ -6,6 +6,7 @@ struct Client
 {
 public:
 	Client(int socket);
+	bool is_connected();
 
 public:
 	int socket;
