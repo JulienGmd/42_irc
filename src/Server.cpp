@@ -219,13 +219,9 @@ bool Server::handle_client_messages(Client &client, const std::string &buffer, i
 		else if (command == "NICK")
 			client.nickname = params;
 		else if (command == "PRIVMSG")
-		{
 			prv_msg(client, params);
-		}
 		else if (command == "INVITE")
-		{
 			invite_cmd(client, params);
-		}
 		else if (command == "QUIT")
 			return false;
 	}
