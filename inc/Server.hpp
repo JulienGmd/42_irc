@@ -36,7 +36,5 @@ private:
 	void set_non_blocking(int fd);
 	void shutdown();
 	void invite_cmd(Client &client, std::string params);
-	void user_cmd(Client &client, std::string params);
-	// void nick_cmd(Client &client, std::string params);
 	void prv_msg(Client &client, std::string params);
 };
