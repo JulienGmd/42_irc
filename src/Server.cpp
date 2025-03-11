@@ -1,7 +1,6 @@
 #include "Server.hpp"
 #include "_config.hpp"
 
-#include "Server.hpp"
 #include "channelCommands.hpp"
 #include <Utils.hpp>
 
@@ -202,6 +201,7 @@ bool Server::handle_client_messages(Client &client, const std::string &buffer, i
 		std::string command, params;
 		parse_command(message, command, params);
 
+		// todo check nick & user
 		if (handle_channel_command(&client, command, params, channels))
 			continue;
 		if (command == "PASS")
@@ -214,10 +214,11 @@ bool Server::handle_client_messages(Client &client, const std::string &buffer, i
 				return false;
 			}
 		}
+		// TODO nick user to fix
 		else if (command == "USER")
-			client.username = params.substr(0, params.find(" "));
+			user_cmd(client, params);
 		else if (command == "NICK")
-			client.nickname = params;
+			nick_cmd(client, params);
 		else if (command == "PRIVMSG")
 			prv_msg(client, params);
 		else if (command == "INVITE")
@@ -251,6 +252,84 @@ void Server::shutdown()
 	for (size_t i = 0; i < clients.size(); i++)
 		close(clients[i].socket);
 	close(server_fd);
+}
+
+void Server::nick_cmd(Client &client, std::string params)
+{
+	std::string hostname = IRCHOSTNAME;
+	std::vector<std::string> split = splitString(params, ' ');
+
+	if (split.size() < 0)
+	{
+		std::ostringstream error;
+		error << ":" << hostname << " " << ERR_NEEDMOREPARAMS << " " << client.nickname << " NICK :Not enough parameters\r\n";
+		send(client.socket, error.str().c_str(), error.str().length(), 0);
+		return;
+	}
+
+	for (size_t i = 0; i < split.size(); i++)
+	{
+		std::cout << split[i] << std::endl;
+	}
+
+	std::string newNickname;
+
+	for (size_t i = 0; i < split.size(); i++)
+	{
+		newNickname += split[i];
+	}
+
+	for (size_t i = 0; i < this->clients.size(); i++)
+	{
+		if (this->clients[i].username == newNickname)
+		{
+			std::ostringstream error;
+			error << ":" << hostname << " " << ERR_ALREADYREGISTERED << " " << client.nickname << " NICK :NICK already exist\r\n";
+			send(client.socket, error.str().c_str(), error.str().length(), 0);
+			return;
+		}
+	}
+	client.username = newNickname;
+
+	// std::ostringstream msg_confirm;
+	// msg_confirm << ":" << IRCHOSTNAME << " 001 " << newNickname << " :NICK is now " << newNickname << "\r\n";
+	// send(client.socket, msg_confirm.str().c_str(), msg_confirm.str().length(), 0);
+}
+
+void Server::user_cmd(Client &client, std::string params)
+{
+	std::string hostname = IRCHOSTNAME;
+	std::vector<std::string> split = splitString(params, ' ');
+
+	if (split.size() < 0)
+	{
+		std::ostringstream error;
+		error << ":" << hostname << " " << ERR_NEEDMOREPARAMS << " " << client.nickname << " USER :Not enough parameters\r\n";
+		send(client.socket, error.str().c_str(), error.str().length(), 0);
+		return;
+	}
+
+	std::string newUsername;
+	for (size_t i = 0; i < split.size(); i++)
+	{
+		newUsername += split[i];
+	}
+
+	for (size_t i = 0; i < this->clients.size(); i++)
+	{
+		if (this->clients[i].username == newUsername)
+		{
+			std::ostringstream error;
+			error << ":" << hostname << " " << ERR_ALREADYREGISTERED << " " << client.nickname << " USER :username already exist\r\n";
+			send(client.socket, error.str().c_str(), error.str().length(), 0);
+			return;
+		}
+	}
+	client.username = newUsername;
+
+	// std::ostringstream msg_confirm;
+	// msg_confirm << ":" << IRCHOSTNAME << " 001 " << client.nickname << " :User is now " << newUsername << "\r\n";
+	// send(client.socket, msg_confirm.str().c_str(), msg_confirm.str().length(), 0);
 }
 
 void Server::invite_cmd(Client &client, std::string params)
@@ -348,6 +427,7 @@ void Server::prv_msg(Client &client, std::string params)
 	Client *target = NULL;
 	Client *sender = &client;
 	std::vector<std::string> splitParams = splitString(params, ' ');
+
 	for (size_t j = 0; j < users.size(); j++)
 	{
 		if (splitParams[0] == users[j].nickname)
