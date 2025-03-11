@@ -22,7 +22,8 @@ Server::Server(int port, const std::string &password)
 	this->channels.push_back(a);
 	Channel b("#actu");
 	b.changetopic("On parle d'actu ici");
-	b.changemode("+i");
+	b.changemode("+l");
+	b.changeul(1);
 	this->channels.push_back(b);
 	start();
 	loop();
@@ -201,8 +202,7 @@ bool Server::handle_client_messages(Client &client, const std::string &buffer, i
 		std::string command, params;
 		parse_command(message, command, params);
 
-		// todo check nick & user
-		if (handle_channel_command(&client, command, params, channels))
+		if (!(client.nickname.empty()) && !(client.username.empty()) && handle_channel_command(&client, command, params, channels))
 			continue;
 		if (command == "PASS")
 		{
@@ -214,7 +214,6 @@ bool Server::handle_client_messages(Client &client, const std::string &buffer, i
 				return false;
 			}
 		}
-		// TODO nick user to fix
 		else if (command == "USER")
 			user_cmd(client, params);
 		else if (command == "NICK")
@@ -289,7 +288,8 @@ void Server::nick_cmd(Client &client, std::string params)
 			return;
 		}
 	}
-	client.username = newNickname;
+
+	client.nickname = newNickname;
 
 	// std::ostringstream msg_confirm;
 	// msg_confirm << ":" << IRCHOSTNAME << " 001 " << newNickname << " :NICK is now " << newNickname << "\r\n";

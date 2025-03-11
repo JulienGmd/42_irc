@@ -76,11 +76,20 @@ bool isallowed(Client usr, Channel chan, std::string pw)
     for (size_t i = 0; i < modes.size(); i++)
     {
         if (modes[i] == 'i' && !chan.isinvited(usr))
+        {
+            std::cout << modes[i] << std::endl;
             return false;
-        if (modes[i] == 'k' && pw != chan.getpw())
+        }
+        else if (modes[i] == 'k' && pw != chan.getpw())
+        {
+            std::cout << modes[i] << std::endl;
             return false;
-        if (modes[i] == 'l' && chan.getusercount() > chan.getuserlimit())
+        }
+        else if (modes[i] == 'l' && chan.getusercount() >= chan.getuserlimit())
+        {
+            std::cout << modes[i] << std::endl;
             return false;
+        }
     }
     return true;
 }
@@ -109,6 +118,7 @@ void join(Client *usr, std::string params, std::vector<Channel> &channels)
             // TODO: REPL Banned on invite
             if (!isallowed(*usr, channels[i], password))
             {
+                std::cout << "NOT ALLOWED trigger" << std::endl;
                 std::ostringstream error;
                 error << ":" << hostname << " 474 " << usr->nickname << " " << channelName << " :Cannot join channel\r\n";
                 send(usr->socket, error.str().c_str(), error.str().length(), 0);
