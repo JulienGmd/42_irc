@@ -232,10 +232,13 @@ bool Server::handle_client_messages(Client &client, const std::string &buffer, i
 void Server::parse_command(const std::string &message, std::string &out_command, std::string &out_params)
 {
 	size_t pos = message.find(" ");
+	int len = message.size();
+	if (len > 0 && message[len - 1] == '\r')
+		len--;
 	if (pos != std::string::npos)
 	{
 		out_command = message.substr(0, pos);
-		out_params = message.substr(pos + 1, message.size() - pos - 2);
+		out_params = message.substr(pos + 1, len - pos - 1);
 	}
 	else
 		out_command = message;
