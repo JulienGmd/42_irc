@@ -131,13 +131,11 @@ std::vector<Client>::iterator Server::disconnect_client(const std::vector<Client
 	// TODO disconnect from channel
 
 	Client &client = *it;
+
 	for (size_t i = 0; i < channels.size(); i++)
-	{
 		if (channels[i].hasuser(client))
-		{
 			part(&client, channels[i].getid(), channels);
-		}
-	}
+
 	close(client.socket);
 	std::cout << "Client disconnected: " << client.socket << std::endl;
 	return clients.erase(it);
@@ -175,12 +173,17 @@ void Server::handle_clients_messages(fd_set &read_fds)
 					  << ", Socket: " << client.socket << ")\n"
 					  << client.buffer;
 
-			if (!handle_client_messages(client, client.buffer, bytes_read))
+			if (!handle_client_messages(client, client.buffer))
 			{
 				it = disconnect_client(it);
 				continue;
 			}
 			client.buffer.clear();
+		}
+		else if (bytes_read <= 0)
+		{
+			it = disconnect_client(it);
+			continue;
 		}
 
 		++it;
@@ -193,11 +196,8 @@ void Server::handle_clients_messages(fd_set &read_fds)
  * @param buffer Message sent by the client.
  * @return False if the client should be disconnected, true otherwise.
  */
-bool Server::handle_client_messages(Client &client, const std::string &buffer, int bytes_read)
+bool Server::handle_client_messages(Client &client, const std::string &buffer)
 {
-	if (bytes_read <= 0)
-		return false;
-
 	std::vector<std::string> messages = Utils::split(buffer, "\n");
 	for (size_t i = 0; i < messages.size(); i++)
 	{
@@ -208,29 +208,10 @@ bool Server::handle_client_messages(Client &client, const std::string &buffer, i
 		std::string command, params;
 		parse_command(message, command, params);
 
-		if (!(client.nickname.empty()) && !(client.username.empty()) && handle_channel_command(&client, command, params, channels))
+		if (handle_channel_command(&client, command, params, channels))
 			continue;
-		if (command == "PASS")
-		{
-			// TODO check has_set_server_password before handling other commands
-			if (params == PASSWORD)
-				client.has_set_server_password = true;
-			else
-			{
-				send(client.socket, "Invalid password\n", 17, 0);
-				return false;
-			}
-		}
-		else if (command == "USER")
-			user_cmd(client, params, clients);
-		else if (command == "NICK")
-			nick_cmd(client, params, clients);
-		else if (command == "PRIVMSG")
-			prv_msg(client, params, clients);
-		else if (command == "INVITE")
-			invite_cmd(client, params, clients, channels);
-		else if (command == "QUIT")
-			return false;
+
+		return handle_server_command(client, command, params, clients, channels, PASSWORD);
 	}
 	return true;
 }

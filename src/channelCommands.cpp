@@ -523,35 +523,25 @@ bool privmsg(Client *usr, std::string params, std::vector<Channel> &channels)
     }
 }
 
+/** @return True if the command was handled, false otherwise. */
 bool handle_channel_command(Client *usr, std::string command, std::string params, std::vector<Channel> &channels)
 {
-    if (command == "JOIN")
-    {
-        join(usr, params, channels);
-    }
-    else if (command == "PART")
-    {
-        part(usr, params, channels);
-    }
-    else if (command == "TOPIC")
-    {
-        topic(usr, params, channels);
-    }
-    else if (command == "KICK")
-    {
-        kick(usr, params, channels);
-    }
-    else if (command == "MODE")
-    {
-        mode(usr, params, channels);
-    }
-    else if (command == "PRIVMSG")
-    {
-        return privmsg(usr, params, channels);
-    }
-    else
-    {
+    if (!usr->has_set_server_password || usr->nickname.empty() || usr->username.empty())
         return false;
-    }
+
+    if (command == "JOIN")
+        join(usr, params, channels);
+    else if (command == "PART")
+        part(usr, params, channels);
+    else if (command == "TOPIC")
+        topic(usr, params, channels);
+    else if (command == "KICK")
+        kick(usr, params, channels);
+    else if (command == "MODE")
+        mode(usr, params, channels);
+    else if (command == "PRIVMSG")
+        return privmsg(usr, params, channels);
+    else
+        return false;
     return true;
 }

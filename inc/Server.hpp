@@ -31,7 +31,7 @@ private:
 	void connect_client(fd_set &read_fds);
 	std::vector<Client>::iterator disconnect_client(const std::vector<Client>::iterator &it);
 	void handle_clients_messages(fd_set &read_fds);
-	bool handle_client_messages(Client &client, const std::string &buffer, int bytes_read);
+	bool handle_client_messages(Client &client, const std::string &buffer);
 	void parse_command(const std::string &message, std::string &out_command, std::string &out_params);
 	void set_non_blocking(int fd);
 	void shutdown();

@@ -5,8 +5,48 @@
 
 #include <vector>
 
+bool pass_cmd(Client &client, const std::string &params, const std::string &PASSWORD);
+void nick_cmd(Client &client, const std::string &params, const std::vector<Client> &clients);
+void user_cmd(Client &client, const std::string &params, const std::vector<Client> &clients);
+void invite_cmd(Client &client, const std::string &params, std::vector<Client> &clients, std::vector<Channel> &channels);
+void prv_msg(Client &client, const std::string &params, const std::vector<Client> &clients);
+
+/** @return false if the client should be disconnected, true otherwise. */
+bool handle_server_command(Client &client, const std::string &command, const std::string &params, std::vector<Client> &clients, std::vector<Channel> &channels, const std::string &PASSWORD)
+{
+    std::cout << "server command: " << command << std::endl;
+
+    if (command == "PASS")
+        return pass_cmd(client, params, PASSWORD);
+    else if (command == "NICK")
+        nick_cmd(client, params, clients);
+    else if (command == "USER")
+        user_cmd(client, params, clients);
+    else if (command == "INVITE")
+        invite_cmd(client, params, clients, channels);
+    else if (command == "PRIVMSG")
+        prv_msg(client, params, clients);
+    else if (command == "QUIT")
+        return false;
+    return true;
+}
+
+bool pass_cmd(Client &client, const std::string &params, const std::string &PASSWORD)
+{
+    if (params != PASSWORD)
+    {
+        send(client.socket, "Invalid password\n", 17, 0);
+        return false;
+    }
+    client.has_set_server_password = true;
+    return true;
+}
+
 void nick_cmd(Client &client, const std::string &params, const std::vector<Client> &clients)
 {
+    if (!client.has_set_server_password)
+        return;
+
     std::string hostname = IRCHOSTNAME;
     std::vector<std::string> split = splitString(params, ' ');
 
@@ -49,6 +89,9 @@ void nick_cmd(Client &client, const std::string &params, const std::vector<Clien
 
 void user_cmd(Client &client, const std::string &params, const std::vector<Client> &clients)
 {
+    if (!client.has_set_server_password)
+        return;
+
     std::string hostname = IRCHOSTNAME;
     std::vector<std::string> split = splitString(params, ' ');
 
@@ -85,6 +128,9 @@ void user_cmd(Client &client, const std::string &params, const std::vector<Clien
 
 void invite_cmd(Client &client, const std::string &params, std::vector<Client> &clients, std::vector<Channel> &channels)
 {
+    if (!client.has_set_server_password)
+        return;
+
     std::string hostname = IRCHOSTNAME;
     std::vector<std::string> split = splitString(params, ' ');
 
@@ -171,6 +217,9 @@ void invite_cmd(Client &client, const std::string &params, std::vector<Client> &
 
 void prv_msg(Client &client, const std::string &params, const std::vector<Client> &clients)
 {
+    if (!client.has_set_server_password)
+        return;
+
     std::string hostname = IRCHOSTNAME;
 
     // compare socket to found client
