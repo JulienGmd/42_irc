@@ -472,7 +472,10 @@ bool privmsg(Client *usr, std::string params, std::vector<Channel> &channels)
         return true;
     }
     std::string target = split[0];
-    std::string message = params.substr(params.find(' ') + 1);
+
+    std::string message = params.substr(params.find(' ') + 2);
+
+    std::cout << "Message: " << message << std::endl;
 
     if (target[0] == '#')
     {
@@ -490,6 +493,7 @@ bool privmsg(Client *usr, std::string params, std::vector<Channel> &channels)
                 }
 
                 std::ostringstream msgNotif;
+                std::cout << message << std::endl;
                 msgNotif << ":" << usr->nickname << "!" << usr->username << "@" << usr->hostname << " PRIVMSG " << target << " :" << message << "\r\n";
 
                 std::vector<Client *> users = channels[i].getusers();

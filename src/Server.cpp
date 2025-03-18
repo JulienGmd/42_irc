@@ -234,7 +234,7 @@ void Server::parse_command(const std::string &message, std::string &out_command,
 	if (pos != std::string::npos)
 	{
 		out_command = message.substr(0, pos);
-		out_params = message.substr(pos + 1, message.size() - pos - 2);
+		out_params = message.substr(pos + 1, message.size() - pos - 1);
 	}
 	else
 		out_command = message;
@@ -258,17 +258,16 @@ void Server::nick_cmd(Client &client, std::string params)
 	std::string hostname = IRCHOSTNAME;
 	std::vector<std::string> split = splitString(params, ' ');
 
-	if (split.size() < 0)
+	std::cout << std::endl
+			  << "params" << std::endl;
+	std::cout << params << std::endl;
+
+	if (split.size() == 0)
 	{
 		std::ostringstream error;
 		error << ":" << hostname << " " << ERR_NEEDMOREPARAMS << " " << client.nickname << " NICK :Not enough parameters\r\n";
 		send(client.socket, error.str().c_str(), error.str().length(), 0);
 		return;
-	}
-
-	for (size_t i = 0; i < split.size(); i++)
-	{
-		std::cout << split[i] << std::endl;
 	}
 
 	std::string newNickname;
@@ -301,7 +300,7 @@ void Server::user_cmd(Client &client, std::string params)
 	std::string hostname = IRCHOSTNAME;
 	std::vector<std::string> split = splitString(params, ' ');
 
-	if (split.size() < 0)
+	if (split.size() == 0)
 	{
 		std::ostringstream error;
 		error << ":" << hostname << " " << ERR_NEEDMOREPARAMS << " " << client.nickname << " USER :Not enough parameters\r\n";
