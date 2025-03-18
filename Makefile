@@ -5,7 +5,7 @@ CXX		= c++
 
 INC_DIR	= inc
 SRC_DIR	= src
-OBJ_DIR	= obj
+OBJ_DIR	= .obj
 
 INCS	= $(shell find $(INC_DIR) -type f -name '*.h' -o -name '*.hpp')
 SRCS	= $(shell find $(SRC_DIR) -type f -name '*.cpp')
@@ -66,10 +66,8 @@ $(NAME): $(OBJS)
 	$(CXX) $(LFLAGS) $(OBJS) $(LLIBS) -o $@
 	@echo -n "$(RESET)"
 
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(INCS) Makefile | $(OBJ_DIR)
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(INCS) Makefile
 	@echo -n "$(BLUE)"
+	@mkdir -p $(dir $@)
 	$(CXX) $(CFLAGS) $(CINC) -c $< -o $@
 	@echo -n "$(RESET)"
-
-$(OBJ_DIR):
-	@mkdir -p $(OBJ_DIR)
