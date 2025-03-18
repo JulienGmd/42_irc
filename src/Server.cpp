@@ -164,17 +164,23 @@ void Server::handle_clients_messages(fd_set &read_fds)
 		// TODO gerer si le message est plus grand que BUFFER_SIZE
 		// TODO gerer si le message est coupe en plusieurs morceaux
 		int bytes_read = read(client.socket, buffer, BUFFER_SIZE);
-		std::cout << "Message from client ("
-				  << "Hostname: " << client.hostname
-				  << ", Nickname: " << client.nickname
-				  << ", Username: " << client.username
-				  << ", Socket: " << client.socket << ")\n"
-				  << buffer;
+		client.buffer += buffer;
 
-		if (!handle_client_messages(client, buffer, bytes_read))
+		if (bytes_read > 0 && buffer[bytes_read - 1] == '\n')
 		{
-			it = disconnect_client(it);
-			continue;
+			std::cout << "Message from client ("
+					  << "Hostname: " << client.hostname
+					  << ", Nickname: " << client.nickname
+					  << ", Username: " << client.username
+					  << ", Socket: " << client.socket << ")\n"
+					  << client.buffer;
+
+			if (!handle_client_messages(client, client.buffer, bytes_read))
+			{
+				it = disconnect_client(it);
+				continue;
+			}
+			client.buffer.clear();
 		}
 
 		++it;
