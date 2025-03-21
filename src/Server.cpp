@@ -233,6 +233,7 @@ void Server::parse_command(const std::string &message, std::string &out_command,
 
 void Server::set_non_blocking(int fd)
 {
+	// TODO utiliser que la 2eme ligne
 	int flags = fcntl(fd, F_GETFL, 0);
 	fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 }
