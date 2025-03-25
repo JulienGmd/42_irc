@@ -112,7 +112,6 @@ void join(Client *usr, std::string params, std::vector<Channel> &channels)
     {
         if (channels[i].getid() == channelName)
         {
-            // TODO: REPL Banned on invite
             if (!isallowed(*usr, channels[i], password))
             {
                 std::ostringstream error;
@@ -130,9 +129,11 @@ void join(Client *usr, std::string params, std::vector<Channel> &channels)
             std::ostringstream joinMsg;
             joinMsg << ":" << usr->nickname << "!" << usr->username << "@" << usr->hostname << " JOIN " << channelName << "\r\n";
             std::vector<Client *> users = channels[i].getusers();
+            std::vector<Client *>::iterator it = users.begin();
             for (size_t j = 0; j < users.size(); j++)
             {
-                send(users[j]->socket, joinMsg.str().c_str(), joinMsg.str().length(), 0);
+                send((*it)->socket, joinMsg.str().c_str(), joinMsg.str().length(), 0);
+                it++;
             }
 
             std::ostringstream topicMsg;
