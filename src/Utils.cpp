@@ -1,7 +1,10 @@
+#include "_config.hpp"
+#include <errno.h>
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <sys/socket.h>
 #include <vector>
 
 namespace Utils
@@ -42,6 +45,24 @@ namespace Utils
 
 		while (std::getline(ss, item, delimiter[0]))
 			result.push_back(item);
+
+		return result;
+	}
+
+	std::string chain_read(int fd)
+	{
+		std::string result;
+		char buffer[BUFFER_SIZE];
+		int bytes_read;
+
+		while ((bytes_read = recv(fd, buffer, BUFFER_SIZE - 1, 0)) > 0)
+		{
+			buffer[bytes_read] = '\0';
+			result += buffer;
+		}
+
+		if (bytes_read < 0 && errno != EAGAIN && errno != EWOULDBLOCK)
+			throw std::runtime_error("chain_read: recv failed");
 
 		return result;
 	}

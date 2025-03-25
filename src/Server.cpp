@@ -156,20 +156,15 @@ void Server::handle_clients_messages(fd_set &read_fds)
 			continue;
 		}
 
-		char buffer[BUFFER_SIZE];
-		memset(buffer, 0, BUFFER_SIZE);
+		client.buffer += Utils::chain_read(client.socket);
 
-		// TODO gerer si le message est plus grand que BUFFER_SIZE
-		int bytes_read = read(client.socket, buffer, BUFFER_SIZE);
-		client.buffer += buffer;
-
-		if (bytes_read <= 0)
+		if (client.buffer.empty())
 		{
 			it = disconnect_client(it);
 			continue;
 		}
 
-		if (buffer[bytes_read - 1] == '\n')
+		if (client.buffer[client.buffer.size() - 1] == '\n')
 		{
 			std::cout << "Message from client ("
 					  << "Hostname: " << client.hostname
