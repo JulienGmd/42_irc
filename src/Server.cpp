@@ -4,12 +4,11 @@
 #include "serverCommands.hpp"
 #include <Utils.hpp>
 
-#include <cstring> // TODO C
-#include <fcntl.h> // TODO C
+#include <arpa/inet.h>
+#include <cstring>
+#include <fcntl.h>
 #include <iostream>
-#include <netdb.h>
-#include <sys/socket.h>
-#include <unistd.h> // TODO C
+#include <unistd.h>
 #include <vector>
 
 Server::Server(int port, const std::string &password)
@@ -116,13 +115,12 @@ void Server::connect_client(fd_set &read_fds)
 	// Add the client to the list of clients
 	set_non_blocking(new_socket);
 	clients.push_back(Client(new_socket));
-	// Retrieve the hostname of the client
-	char host[NI_MAXHOST];
-	if (getnameinfo((struct sockaddr *)&address, addrlen, host, NI_MAXHOST, NULL, 0, 0) != 0)
-		strcpy(host, "UNKNOWN");
-	clients.back().hostname = host;
 
-	std::cout << "New connection: " << host << ", Socket: " << new_socket << std::endl;
+	// Retrieve the hostname of the client
+	char *ip_str = inet_ntoa(address.sin_addr);
+	clients.back().hostname = ip_str;
+
+	std::cout << "New connection: " << clients.back().hostname << ", Socket: " << new_socket << std::endl;
 	send(new_socket, "Welcome!\n", 9, 0);
 }
 
