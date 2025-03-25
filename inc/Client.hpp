@@ -2,7 +2,7 @@
 
 #include <string>
 
-struct Client
+class Client
 {
 public:
 	Client(int socket);
