@@ -211,7 +211,8 @@ bool Server::handle_client_messages(Client &client, const std::string &buffer)
 		if (handle_channel_command(&client, command, params, channels))
 			continue;
 
-		return handle_server_command(client, command, params, clients, channels, PASSWORD);
+		if (!handle_server_command(client, command, params, clients, channels, PASSWORD))
+			return false;
 	}
 	return true;
 }
