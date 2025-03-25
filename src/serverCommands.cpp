@@ -14,8 +14,6 @@ void prv_msg(Client &client, const std::string &params, const std::vector<Client
 /** @return false if the client should be disconnected, true otherwise. */
 bool handle_server_command(Client &client, const std::string &command, const std::string &params, std::vector<Client> &clients, std::vector<Channel> &channels, const std::string &PASSWORD)
 {
-    std::cout << "server command: " << command << std::endl;
-
     if (command == "PASS")
         return pass_cmd(client, params, PASSWORD);
     else if (command == "NICK")
@@ -49,10 +47,6 @@ void nick_cmd(Client &client, const std::string &params, const std::vector<Clien
 
     std::string hostname = IRCHOSTNAME;
     std::vector<std::string> split = splitString(params, ' ');
-
-    std::cout << std::endl
-              << "params" << std::endl;
-    std::cout << params << std::endl;
 
     if (split.size() == 0)
     {

@@ -77,17 +77,14 @@ bool isallowed(Client usr, Channel chan, std::string pw)
     {
         if (modes[i] == 'i' && !chan.isinvited(usr))
         {
-            std::cout << modes[i] << std::endl;
             return false;
         }
         else if (modes[i] == 'k' && pw != chan.getpw())
         {
-            std::cout << modes[i] << std::endl;
             return false;
         }
         else if (modes[i] == 'l' && chan.getusercount() >= chan.getuserlimit())
         {
-            std::cout << modes[i] << std::endl;
             return false;
         }
     }
@@ -118,7 +115,6 @@ void join(Client *usr, std::string params, std::vector<Channel> &channels)
             // TODO: REPL Banned on invite
             if (!isallowed(*usr, channels[i], password))
             {
-                std::cout << "NOT ALLOWED trigger" << std::endl;
                 std::ostringstream error;
                 error << ":" << hostname << " 474 " << usr->nickname << " " << channelName << " :Cannot join channel\r\n";
                 send(usr->socket, error.str().c_str(), error.str().length(), 0);
@@ -475,8 +471,6 @@ bool privmsg(Client *usr, std::string params, std::vector<Channel> &channels)
 
     std::string message = params.substr(params.find(' ') + 2);
 
-    std::cout << "Message: " << message << std::endl;
-
     if (target[0] == '#')
     {
         // Message to a channel
@@ -493,7 +487,6 @@ bool privmsg(Client *usr, std::string params, std::vector<Channel> &channels)
                 }
 
                 std::ostringstream msgNotif;
-                std::cout << message << std::endl;
                 msgNotif << ":" << usr->nickname << "!" << usr->username << "@" << usr->hostname << " PRIVMSG " << target << " :" << message << "\r\n";
 
                 std::vector<Client *> users = channels[i].getusers();
