@@ -14,7 +14,6 @@
 
 // TODO join doit creer un channel si non existant
 // TODO welcome message (https://modern.ircdocs.horse/#rplwelcome-001)
-// TODO USER can be done only one time
 // TODO ctrl+c clean exit
 
 Server::Server(int port, const std::string &password)

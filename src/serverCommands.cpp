@@ -86,10 +86,17 @@ void nick_cmd(Client &client, const std::string &params, std::map<int, Client> &
 
 void user_cmd(Client &client, const std::string &params, std::map<int, Client> &clients)
 {
+    std::string hostname = IRCHOSTNAME;
+
     if (!client.has_set_server_password || client.nickname.empty())
         return;
+    if (!client.username.empty())
+    {
+        std::ostringstream error;
+        error << ":" << hostname << " " << ERR_ALREADYREGISTERED << " " << client.nickname << " :You may not reregister\r\n";
+        send(client.socket, error.str().c_str(), error.str().length(), 0);
+    }
 
-    std::string hostname = IRCHOSTNAME;
     std::vector<std::string> split = splitString(params, ' ');
 
     if (split.size() == 0)
