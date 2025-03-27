@@ -3,16 +3,18 @@
 #include "_config.hpp"
 #include "channelCommands.hpp"
 
+#include <map>
+#include <string>
 #include <vector>
 
 bool pass_cmd(Client &client, const std::string &params, const std::string &PASSWORD);
-void nick_cmd(Client &client, const std::string &params, const std::vector<Client> &clients);
-void user_cmd(Client &client, const std::string &params, const std::vector<Client> &clients);
-void invite_cmd(Client &client, const std::string &params, std::vector<Client> &clients, std::vector<Channel> &channels);
-void prv_msg(Client &client, const std::string &params, const std::vector<Client> &clients);
+void nick_cmd(Client &client, const std::string &params, std::map<int, Client> &clients);
+void user_cmd(Client &client, const std::string &params, std::map<int, Client> &clients);
+void invite_cmd(Client &client, const std::string &params, std::map<int, Client> &clients, std::vector<Channel> &channels);
+void prv_msg(Client &client, const std::string &params, std::map<int, Client> &clients);
 
 /** @return false if the client should be disconnected, true otherwise. */
-bool handle_server_command(Client &client, const std::string &command, const std::string &params, std::vector<Client> &clients, std::vector<Channel> &channels, const std::string &PASSWORD)
+bool handle_server_command(Client &client, const std::string &command, const std::string &params, std::map<int, Client> &clients, std::vector<Channel> &channels, const std::string &PASSWORD)
 {
     if (command == "PASS")
         return pass_cmd(client, params, PASSWORD);
@@ -40,7 +42,7 @@ bool pass_cmd(Client &client, const std::string &params, const std::string &PASS
     return true;
 }
 
-void nick_cmd(Client &client, const std::string &params, const std::vector<Client> &clients)
+void nick_cmd(Client &client, const std::string &params, std::map<int, Client> &clients)
 {
     if (!client.has_set_server_password)
         return;
@@ -63,9 +65,10 @@ void nick_cmd(Client &client, const std::string &params, const std::vector<Clien
         newNickname += split[i];
     }
 
-    for (size_t i = 0; i < clients.size(); i++)
+    for (std::map<int, Client>::iterator it = clients.begin(); it != clients.end(); ++it)
     {
-        if (clients[i].username == newNickname)
+        Client &client = it->second;
+        if (client.username == newNickname)
         {
             std::ostringstream error;
             error << ":" << hostname << " " << ERR_ALREADYREGISTERED << " " << client.nickname << " NICK :NICK already exist\r\n";
@@ -81,7 +84,7 @@ void nick_cmd(Client &client, const std::string &params, const std::vector<Clien
     // send(client.socket, msg_confirm.str().c_str(), msg_confirm.str().length(), 0);
 }
 
-void user_cmd(Client &client, const std::string &params, const std::vector<Client> &clients)
+void user_cmd(Client &client, const std::string &params, std::map<int, Client> &clients)
 {
     if (!client.has_set_server_password)
         return;
@@ -103,9 +106,10 @@ void user_cmd(Client &client, const std::string &params, const std::vector<Clien
         newUsername += split[i];
     }
 
-    for (size_t i = 0; i < clients.size(); i++)
+    for (std::map<int, Client>::iterator it = clients.begin(); it != clients.end(); ++it)
     {
-        if (clients[i].username == newUsername)
+        Client &client = it->second;
+        if (client.username == newUsername)
         {
             std::ostringstream error;
             error << ":" << hostname << " " << ERR_ALREADYREGISTERED << " " << client.nickname << " USER :username already exist\r\n";
@@ -120,7 +124,7 @@ void user_cmd(Client &client, const std::string &params, const std::vector<Clien
     // send(client.socket, msg_confirm.str().c_str(), msg_confirm.str().length(), 0);
 }
 
-void invite_cmd(Client &client, const std::string &params, std::vector<Client> &clients, std::vector<Channel> &channels)
+void invite_cmd(Client &client, const std::string &params, std::map<int, Client> &clients, std::vector<Channel> &channels)
 {
     if (!client.has_set_server_password)
         return;
@@ -179,11 +183,12 @@ void invite_cmd(Client &client, const std::string &params, std::vector<Client> &
     // look for the target user is connected
     // need list of clients
     Client *target = NULL;
-    for (size_t i = 0; i < clients.size(); i++)
+    for (std::map<int, Client>::iterator it = clients.begin(); it != clients.end(); ++it)
     {
-        if (targetUser == clients[i].nickname)
+        Client &client = it->second;
+        if (targetUser == client.nickname)
         {
-            target = &clients[i];
+            target = &client;
             break;
         }
     }
@@ -209,7 +214,7 @@ void invite_cmd(Client &client, const std::string &params, std::vector<Client> &
     send(client.socket, msg_confirm.str().c_str(), msg_confirm.str().length(), 0);
 }
 
-void prv_msg(Client &client, const std::string &params, const std::vector<Client> &clients)
+void prv_msg(Client &client, const std::string &params, std::map<int, Client> &clients)
 {
     if (!client.has_set_server_password)
         return;
@@ -217,16 +222,15 @@ void prv_msg(Client &client, const std::string &params, const std::vector<Client
     std::string hostname = IRCHOSTNAME;
 
     // compare socket to found client
-    std::vector<Client> users = clients;
     Client *target = NULL;
-    Client *sender = &client;
     std::vector<std::string> splitParams = splitString(params, ' ');
 
-    for (size_t j = 0; j < users.size(); j++)
+    for (std::map<int, Client>::iterator it = clients.begin(); it != clients.end(); ++it)
     {
-        if (splitParams[0] == users[j].nickname)
+        Client &client = it->second;
+        if (splitParams[0] == client.nickname)
         {
-            target = &users[j];
+            target = &client;
             break;
         }
     }
@@ -248,6 +252,6 @@ void prv_msg(Client &client, const std::string &params, const std::vector<Client
     }
     if (msg[0] == ':')
         msg = msg.substr(1, msg.size() - 1);
-    msgNotif << ":" << sender->nickname << " " << " PRIVMSG " << target->nickname << " :" << msg << "\r\n";
+    msgNotif << ":" << client.nickname << " " << " PRIVMSG " << target->nickname << " :" << msg << "\r\n";
     send(target->socket, msgNotif.str().c_str(), msgNotif.str().length(), 0);
 }

@@ -4,6 +4,7 @@
 #include "serverCommands.hpp"
 #include <Utils.hpp>
 
+#include <algorithm>
 #include <arpa/inet.h>
 #include <cstring>
 #include <fcntl.h>
@@ -12,7 +13,7 @@
 #include <vector>
 
 Server::Server(int port, const std::string &password)
-	: PORT(port), PASSWORD(password), server_fd(-1), address(), clients()
+	: PORT(port), PASSWORD(password), server_fd(-1), address(), clients(), channels()
 {
 	Channel a("#general");
 	a.changetopic("On parle de tout et de rien");
@@ -30,7 +31,10 @@ Server::Server(int port, const std::string &password)
 
 Server::~Server()
 {
-	shutdown();
+	close(server_fd);
+
+	for (std::map<int, Client>::iterator it = clients.begin(); it != clients.end(); ++it)
+		close(it->first);
 }
 
 /**
@@ -76,11 +80,11 @@ void Server::loop()
 		FD_ZERO(&read_fds);
 		FD_SET(server_fd, &read_fds);
 		max_fd = server_fd;
-		for (size_t i = 0; i < clients.size(); i++)
+
+		for (std::map<int, Client>::iterator it = clients.begin(); it != clients.end(); ++it)
 		{
-			FD_SET(clients[i].socket, &read_fds);
-			if (clients[i].socket > max_fd)
-				max_fd = clients[i].socket;
+			FD_SET(it->first, &read_fds);
+			max_fd = std::max(max_fd, it->first);
 		}
 
 		// Wait for activity on any of the sockets.
@@ -114,29 +118,32 @@ void Server::connect_client(fd_set &read_fds)
 
 	// Add the client to the list of clients
 	set_non_blocking(new_socket);
-	clients.push_back(Client(new_socket));
+	clients[new_socket] = Client(new_socket);
 
 	// Retrieve the hostname of the client
 	char *ip_str = inet_ntoa(address.sin_addr);
-	clients.back().hostname = ip_str;
+	clients[new_socket].hostname = ip_str;
 
-	std::cout << "New connection: " << clients.back().hostname << ", Socket: " << new_socket << std::endl;
+	std::cout << "Client connected: " << new_socket << std::endl;
 	send(new_socket, "Welcome!\n", 9, 0);
 }
 
-std::vector<Client>::iterator Server::disconnect_client(const std::vector<Client>::iterator &it)
+std::map<int, Client>::iterator Server::disconnect_client(const std::map<int, Client>::iterator &it)
 {
-	// TODO disconnect from channel
-
-	Client &client = *it;
+	Client &client = it->second;
 
 	for (size_t i = 0; i < channels.size(); i++)
 		if (channels[i].hasuser(client))
 			part(&client, channels[i].getid(), channels);
 
 	close(client.socket);
+
+	std::map<int, Client>::iterator next = it;
+	++next;
+	clients.erase(it);
+
 	std::cout << "Client disconnected: " << client.socket << std::endl;
-	return clients.erase(it);
+	return next;
 }
 
 /**
@@ -145,9 +152,10 @@ std::vector<Client>::iterator Server::disconnect_client(const std::vector<Client
  */
 void Server::handle_clients_messages(fd_set &read_fds)
 {
-	for (std::vector<Client>::iterator it = clients.begin(); it != clients.end();)
+	for (std::map<int, Client>::iterator it = clients.begin(); it != clients.end();)
 	{
-		Client &client = *it;
+		Client &client = it->second;
+
 		if (!FD_ISSET(client.socket, &read_fds))
 		{
 			++it;
@@ -165,13 +173,13 @@ void Server::handle_clients_messages(fd_set &read_fds)
 		if (client.buffer[client.buffer.size() - 1] == '\n')
 		{
 			std::cout << "Message from client ("
-					  << "Hostname: " << client.hostname
-					  << ", Nickname: " << client.nickname
-					  << ", Username: " << client.username
-					  << ", Socket: " << client.socket << ")\n"
-					  << client.buffer;
+					  << "H=" << client.hostname
+					  << ", N=" << client.nickname
+					  << ", U=" << client.username
+					  << ", S=" << client.socket << ")\n"
+					  << client.buffer << std::endl;
 
-			if (!handle_client_messages(client, client.buffer))
+			if (!handle_client_messages(client))
 			{
 				it = disconnect_client(it);
 				continue;
@@ -186,12 +194,11 @@ void Server::handle_clients_messages(fd_set &read_fds)
 /**
  * Handle messages from a client.
  * @param client Client that sent the message.
- * @param buffer Message sent by the client.
  * @return False if the client should be disconnected, true otherwise.
  */
-bool Server::handle_client_messages(Client &client, const std::string &buffer)
+bool Server::handle_client_messages(Client &client)
 {
-	std::vector<std::string> messages = Utils::split(buffer, "\n");
+	std::vector<std::string> messages = Utils::split(client.buffer, "\n");
 	for (size_t i = 0; i < messages.size(); i++)
 	{
 		std::string message = messages[i];
@@ -228,11 +235,4 @@ void Server::parse_command(const std::string &message, std::string &out_command,
 void Server::set_non_blocking(int fd)
 {
 	fcntl(fd, F_SETFL, O_NONBLOCK);
-}
-
-void Server::shutdown()
-{
-	for (size_t i = 0; i < clients.size(); i++)
-		close(clients[i].socket);
-	close(server_fd);
 }

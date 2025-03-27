@@ -22,17 +22,16 @@ private:
 	const std::string PASSWORD;
 	int server_fd;
 	sockaddr_in address;
-	std::vector<Client> clients;
-	std::vector<Channel> channels;
+	std::map<int, Client> clients;
+	std::vector<Channel> channels; // TODO map
 
 private:
 	void start();
 	void loop();
 	void connect_client(fd_set &read_fds);
-	std::vector<Client>::iterator disconnect_client(const std::vector<Client>::iterator &it);
+	std::map<int, Client>::iterator disconnect_client(const std::map<int, Client>::iterator &it);
 	void handle_clients_messages(fd_set &read_fds);
-	bool handle_client_messages(Client &client, const std::string &buffer);
+	bool handle_client_messages(Client &client);
 	void parse_command(const std::string &message, std::string &out_command, std::string &out_params);
 	void set_non_blocking(int fd);
-	void shutdown();
 };

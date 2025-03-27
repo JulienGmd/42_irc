@@ -1,9 +1,10 @@
+#pragma once
 
-#include <string>
-#include <vector>
-#include <netinet/in.h>
 #include "Client.hpp"
 #include <iostream>
+#include <netinet/in.h>
+#include <string>
+#include <vector>
 
 int myStoi(const std::string &str);
 
@@ -23,8 +24,8 @@ private:
     std::string topic;
     size_t userlimit;
     std::string password;
-    std::vector<Client *> users;
-    std::vector<Client *> operators;
+    std::vector<Client *> users;     // TODO vector of int (key of server.clients)
+    std::vector<Client *> operators; // TODO vector of int (key of server.clients)
     std::vector<std::string> invitelist;
 
 private:

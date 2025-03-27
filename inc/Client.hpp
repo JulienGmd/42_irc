@@ -5,6 +5,7 @@
 class Client
 {
 public:
+	Client();
 	Client(int socket);
 	bool is_connected();
 
