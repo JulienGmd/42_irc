@@ -13,8 +13,8 @@
 #include <vector>
 
 // TODO join doit creer un channel si non existant
-// TODO QUIT: segfault lorsqu'un client quit
 // TODO welcome message (https://modern.ircdocs.horse/#rplwelcome-001)
+// TODO USER can be done only one time
 // TODO ctrl+c clean exit
 
 Server::Server(int port, const std::string &password)
@@ -137,6 +137,7 @@ std::map<int, Client>::iterator Server::disconnect_client(const std::map<int, Cl
 {
 	Client &client = it->second;
 
+	std::cout << "Client disconnected: " << client.socket << std::endl;
 	for (size_t i = 0; i < channels.size(); i++)
 		if (channels[i].hasuser(client))
 			part(&client, channels[i].getid(), channels);
@@ -147,7 +148,6 @@ std::map<int, Client>::iterator Server::disconnect_client(const std::map<int, Cl
 	++next;
 	clients.erase(it);
 
-	std::cout << "Client disconnected: " << client.socket << std::endl;
 	return next;
 }
 
@@ -224,17 +224,20 @@ bool Server::handle_client_messages(Client &client)
 
 void Server::parse_command(const std::string &message, std::string &out_command, std::string &out_params)
 {
-	size_t pos = message.find(" ");
-	int len = message.size();
-	if (len > 0 && message[len - 1] == '\r')
-		len--;
+	size_t pos;
+	std::string msg = message;
+	while ((pos = msg.find('\r')) != std::string::npos)
+		msg.erase(pos, 1);
+
+	pos = msg.find(" ");
+	int len = msg.size();
 	if (pos != std::string::npos)
 	{
-		out_command = message.substr(0, pos);
-		out_params = message.substr(pos + 1, len - pos - 1);
+		out_command = msg.substr(0, pos);
+		out_params = msg.substr(pos + 1, len - pos - 1);
 	}
 	else
-		out_command = message;
+		out_command = msg;
 }
 
 void Server::set_non_blocking(int fd)
