@@ -6,6 +6,8 @@
 #include <string>
 #include <vector>
 
+class Server;
+
 int myStoi(const std::string &str);
 
 class Channel
