@@ -48,9 +48,8 @@ void nick_cmd(Client &client, const std::string &params, std::map<int, Client> &
         return;
 
     std::string hostname = IRCHOSTNAME;
-    std::vector<std::string> split = splitString(params, ' ');
 
-    if (split.size() == 0)
+    if (params.empty())
     {
         std::ostringstream error;
         error << ":" << hostname << " " << ERR_NEEDMOREPARAMS << " " << client.nickname << " NICK :Not enough parameters\r\n";
@@ -58,20 +57,15 @@ void nick_cmd(Client &client, const std::string &params, std::map<int, Client> &
         return;
     }
 
-    std::string newNickname;
-
-    for (size_t i = 0; i < split.size(); i++)
-    {
-        newNickname += split[i];
-    }
+    std::string newNickname = params;
 
     for (std::map<int, Client>::iterator it = clients.begin(); it != clients.end(); ++it)
     {
-        Client &client = it->second;
-        if (client.username == newNickname)
+        Client &client2 = it->second;
+        if (client2.nickname == newNickname)
         {
             std::ostringstream error;
-            error << ":" << hostname << " " << ERR_ALREADYREGISTERED << " " << client.nickname << " NICK :NICK already exist\r\n";
+            error << ":" << hostname << " " << ERR_ALREADYREGISTERED << " " << client2.nickname << " NICK :NICK already exist\r\n";
             send(client.socket, error.str().c_str(), error.str().length(), MSG_NOSIGNAL);
             return;
         }
@@ -97,9 +91,7 @@ void user_cmd(Client &client, const std::string &params, std::map<int, Client> &
         send(client.socket, error.str().c_str(), error.str().length(), MSG_NOSIGNAL);
     }
 
-    std::vector<std::string> split = splitString(params, ' ');
-
-    if (split.size() == 0)
+    if (params.empty())
     {
         std::ostringstream error;
         error << ":" << hostname << " " << ERR_NEEDMOREPARAMS << " " << client.nickname << " USER :Not enough parameters\r\n";
@@ -107,19 +99,15 @@ void user_cmd(Client &client, const std::string &params, std::map<int, Client> &
         return;
     }
 
-    std::string newUsername;
-    for (size_t i = 0; i < split.size(); i++)
-    {
-        newUsername += split[i];
-    }
+    std::string newUsername = params;
 
     for (std::map<int, Client>::iterator it = clients.begin(); it != clients.end(); ++it)
     {
-        Client &client = it->second;
-        if (client.username == newUsername)
+        Client &client2 = it->second;
+        if (client2.username == newUsername)
         {
             std::ostringstream error;
-            error << ":" << hostname << " " << ERR_ALREADYREGISTERED << " " << client.nickname << " USER :username already exist\r\n";
+            error << ":" << hostname << " " << ERR_ALREADYREGISTERED << " " << client2.nickname << " USER :username already exist\r\n";
             send(client.socket, error.str().c_str(), error.str().length(), MSG_NOSIGNAL);
             return;
         }
