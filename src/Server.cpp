@@ -7,13 +7,16 @@
 #include <algorithm>
 #include <arpa/inet.h>
 #include <cstring>
+#include <errno.h>
 #include <fcntl.h>
 #include <iostream>
+#include <signal.h>
 #include <unistd.h>
 #include <vector>
 
-// TODO join doit creer un channel si non existant
-// TODO ctrl+c clean exit
+bool ShouldStop = false;
+
+void sigint_handler(int signum);
 
 Server::Server(int port, const std::string &password)
 	: PORT(port), PASSWORD(password), server_fd(-1), address(), clients(), channels()
@@ -24,6 +27,8 @@ Server::Server(int port, const std::string &password)
 
 Server::~Server()
 {
+	std::cout << "\nStopping server..." << std::endl;
+
 	close(server_fd);
 
 	for (std::map<int, Client>::iterator it = clients.begin(); it != clients.end(); ++it)
@@ -35,6 +40,8 @@ Server::~Server()
  */
 void Server::start()
 {
+	signal(SIGINT, sigint_handler);
+
 	// Create the server socket, which will listen for incoming connections.
 	server_fd = socket(ADDRESS_FAMILY, SOCKET_TYPE, 0);
 	if (server_fd < 0)
@@ -69,6 +76,9 @@ void Server::loop()
 
 	while (true)
 	{
+		if (ShouldStop)
+			break;
+
 		// Add server_fd and client sockets to read_fds
 		FD_ZERO(&read_fds);
 		FD_SET(server_fd, &read_fds);
@@ -86,7 +96,11 @@ void Server::loop()
 		// client sockets will be set if there is a message from them.
 		int activity = select(max_fd + 1, &read_fds, NULL, NULL, NULL);
 		if (activity < 0)
+		{
+			if (errno == EINTR)
+				continue;
 			throw std::runtime_error("Select failed");
+		}
 
 		connect_client(read_fds);
 		handle_clients_messages(read_fds);
@@ -241,4 +255,10 @@ Channel *Server::add_channel(std::string name)
 {
 	channels.push_back(Channel(*this, name));
 	return &channels.back();
+}
+
+void sigint_handler(int signum)
+{
+	(void)signum;
+	ShouldStop = true;
 }
