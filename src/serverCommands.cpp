@@ -99,7 +99,12 @@ void user_cmd(Client &client, const std::string &params, std::map<int, Client> &
         return;
     }
 
-    std::string newUsername = params;
+    std::vector<std::string> split = splitString(params, ' ');
+    std::string newUsername;
+    for (size_t i = 0; i < split.size(); i++)
+    {
+        newUsername += split[i];
+    }
 
     for (std::map<int, Client>::iterator it = clients.begin(); it != clients.end(); ++it)
     {
