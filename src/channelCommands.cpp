@@ -173,7 +173,7 @@ void part(Client *usr, std::string params, std::vector<Channel> &channels)
     {
         std::ostringstream error;
         error << ":" << hostname << " 461 " << usr->nickname << " PART :Not enough parameters\r\n";
-        send(usr->socket, error.str().c_str(), error.str().length(), 0);
+        send(usr->socket, error.str().c_str(), error.str().length(), MSG_NOSIGNAL);
         return;
     }
 
@@ -198,7 +198,7 @@ void part(Client *usr, std::string params, std::vector<Channel> &channels)
             {
                 std::ostringstream fail;
                 fail << ":" << hostname << " 442 " << usr->nickname << " " << channelName << " :You're not on that channel\r\n";
-                send(usr->socket, fail.str().c_str(), fail.str().length(), 0);
+                send(usr->socket, fail.str().c_str(), fail.str().length(), MSG_NOSIGNAL);
                 return;
             }
 
@@ -207,7 +207,7 @@ void part(Client *usr, std::string params, std::vector<Channel> &channels)
             std::vector<Client *> userslist = channels[i].getusers();
             for (size_t j = 0; j < userslist.size(); j++)
             {
-                send(userslist[j]->socket, partMsg.str().c_str(), partMsg.str().length(), 0);
+                send(userslist[j]->socket, partMsg.str().c_str(), partMsg.str().length(), MSG_NOSIGNAL);
             }
             channels[i].deluser(*usr);
 
