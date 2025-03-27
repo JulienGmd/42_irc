@@ -367,7 +367,7 @@ void topic(Client *usr, std::string params, std::vector<Channel> &channels)
                 return;
             }
 
-            if (!channels[i].isoperator(*usr) && channels[i].istopicprotected() && !newTopic.empty())
+            if (!channels[i].isoperator(*usr) && channels[i].istopicprotected())
             {
                 std::ostringstream error;
                 error << ":" << hostname << " 482 " << usr->nickname << " " << channelName << " :You're not channel operator\r\n";
@@ -433,7 +433,7 @@ void mode(Client *usr, std::string params, std::vector<Channel> &channels)
                 return;
             }
 
-            if (channels[i].getmode().find("t") != std::string::npos && !channels[i].isoperator(*usr))
+            if ((channels[i].getmode().find("t") != std::string::npos && !channels[i].isoperator(*usr)) || !channels[i].isoperator(*usr))
             {
                 std::ostringstream error;
                 error << ":" << hostname << " " << usr->nickname << " " << channelName << " :Not allowed\r\n";
