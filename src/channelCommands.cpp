@@ -359,6 +359,14 @@ void topic(Client *usr, std::string params, std::vector<Channel> &channels)
     {
         if (channels[i].getid() == channelName)
         {
+            if (!channels[i].hasuser(*usr))
+            {
+                std::ostringstream error;
+                error << ":" << hostname << " 442 " << usr->nickname << " " << channelName << " :You're not on that channel\r\n";
+                send(usr->socket, error.str().c_str(), error.str().length(), MSG_NOSIGNAL);
+                return;
+            }
+
             if (!channels[i].isoperator(*usr) && channels[i].istopicprotected() && !newTopic.empty())
             {
                 std::ostringstream error;
