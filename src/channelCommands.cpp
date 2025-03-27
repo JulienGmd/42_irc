@@ -91,8 +91,45 @@ bool isallowed(Client usr, Channel chan, std::string pw)
     return true;
 }
 
+void join_channel(Client *usr, Channel &channel)
+{
+    std::string hostname = IRCHOSTNAME;
+    std::string channelName = channel.getid();
+
+    channel.adduser(usr);
+    if (channel.getusers().size() == 1)
+    {
+        channel.addoperator(usr);
+    }
+
+    std::ostringstream joinMsg;
+    joinMsg << ":" << usr->nickname << "!" << usr->username << "@" << usr->hostname << " JOIN " << channelName << "\r\n";
+    std::vector<Client *> users = channel.getusers();
+    std::vector<Client *>::iterator it = users.begin();
+    for (size_t j = 0; j < users.size(); j++)
+    {
+        send((*it)->socket, joinMsg.str().c_str(), joinMsg.str().length(), 0);
+        it++;
+    }
+
+    std::ostringstream topicMsg;
+    topicMsg << ":" << hostname << " 332 " << usr->nickname << " " << channelName << " :" << channel.gettopic() << "\r\n";
+    send(usr->socket, topicMsg.str().c_str(), topicMsg.str().length(), 0);
+
+    for (size_t j = 0; j < users.size(); j++)
+    {
+        std::ostringstream namesMsg;
+        namesMsg << ":" << hostname << " 353 " << users[j]->nickname << " = " << channelName << " :" << channel.getnicklist() << "\r\n";
+        send(users[j]->socket, namesMsg.str().c_str(), namesMsg.str().length(), 0);
+
+        std::ostringstream endNamesMsg;
+        endNamesMsg << ":" << hostname << " 366 " << users[j]->nickname << " " << channelName << " :End of /NAMES list\r\n";
+        send(users[j]->socket, endNamesMsg.str().c_str(), endNamesMsg.str().length(), 0);
+    }
+}
+
 // JOIN Command
-void join(Client *usr, std::string params, std::vector<Channel> &channels)
+void join(Client *usr, std::string params, std::vector<Channel> &channels, Server *server)
 {
     std::string hostname = IRCHOSTNAME;
     std::vector<std::string> split = splitString(params, ' ');
@@ -119,44 +156,11 @@ void join(Client *usr, std::string params, std::vector<Channel> &channels)
                 send(usr->socket, error.str().c_str(), error.str().length(), 0);
                 return;
             }
-
-            channels[i].adduser(usr);
-            if (channels[i].getusers().size() == 1)
-            {
-                channels[i].addoperator(usr);
-            }
-
-            std::ostringstream joinMsg;
-            joinMsg << ":" << usr->nickname << "!" << usr->username << "@" << usr->hostname << " JOIN " << channelName << "\r\n";
-            std::vector<Client *> users = channels[i].getusers();
-            std::vector<Client *>::iterator it = users.begin();
-            for (size_t j = 0; j < users.size(); j++)
-            {
-                send((*it)->socket, joinMsg.str().c_str(), joinMsg.str().length(), 0);
-                it++;
-            }
-
-            std::ostringstream topicMsg;
-            topicMsg << ":" << hostname << " 332 " << usr->nickname << " " << channelName << " :" << channels[i].gettopic() << "\r\n";
-            send(usr->socket, topicMsg.str().c_str(), topicMsg.str().length(), 0);
-
-            for (size_t j = 0; j < users.size(); j++)
-            {
-                std::ostringstream namesMsg;
-                namesMsg << ":" << hostname << " 353 " << users[j]->nickname << " = " << channelName << " :" << channels[i].getnicklist() << "\r\n";
-                send(users[j]->socket, namesMsg.str().c_str(), namesMsg.str().length(), 0);
-                std::ostringstream endNamesMsg;
-                endNamesMsg << ":" << hostname << " 366 " << users[j]->nickname << " " << channelName << " :End of /NAMES list\r\n";
-                send(users[j]->socket, endNamesMsg.str().c_str(), endNamesMsg.str().length(), 0);
-            }
-
+            join_channel(usr, channels[i]);
             return;
         }
     }
-
-    std::ostringstream error;
-    error << ":" << hostname << " 403 " << usr->nickname << " " << channelName << " :No such channel\r\n";
-    send(usr->socket, error.str().c_str(), error.str().length(), 0);
+    join_channel(usr, *server->add_channel(channelName));
 }
 
 // PART Command
@@ -206,6 +210,7 @@ void part(Client *usr, std::string params, std::vector<Channel> &channels)
                 send(userslist[j]->socket, partMsg.str().c_str(), partMsg.str().length(), 0);
             }
             channels[i].deluser(*usr);
+
             return;
         }
     }
@@ -518,13 +523,13 @@ bool privmsg(Client *usr, std::string params, std::vector<Channel> &channels)
 }
 
 /** @return True if the command was handled, false otherwise. */
-bool handle_channel_command(Client *usr, std::string command, std::string params, std::vector<Channel> &channels)
+bool handle_channel_command(Client *usr, std::string command, std::string params, std::vector<Channel> &channels, Server *server)
 {
     if (!usr->has_set_server_password || usr->nickname.empty() || usr->username.empty())
         return false;
 
     if (command == "JOIN")
-        join(usr, params, channels);
+        join(usr, params, channels, server);
     else if (command == "PART")
         part(usr, params, channels);
     else if (command == "TOPIC")

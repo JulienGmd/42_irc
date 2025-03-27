@@ -27,6 +27,7 @@ private:
 
 public:
 	const std::map<int, Client> &get_clients();
+	Channel *add_channel(std::string name);
 
 private:
 	void start();

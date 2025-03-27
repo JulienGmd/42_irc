@@ -18,16 +18,6 @@
 Server::Server(int port, const std::string &password)
 	: PORT(port), PASSWORD(password), server_fd(-1), address(), clients(), channels()
 {
-	Channel a(*this, "#room");
-	a.changetopic("On parle de tout et de rien");
-	a.changemode("+l");
-	a.changeul(1024);
-	this->channels.push_back(a);
-	Channel b(*this, "#actu");
-	b.changetopic("On parle d'actu ici");
-	b.changemode("+l");
-	b.changeul(1);
-	this->channels.push_back(b);
 	start();
 	loop();
 }
@@ -210,7 +200,7 @@ bool Server::handle_client_messages(Client &client)
 		std::string command, params;
 		parse_command(message, command, params);
 
-		if (handle_channel_command(&client, command, params, channels))
+		if (handle_channel_command(&client, command, params, channels, this))
 			continue;
 
 		if (!handle_server_command(client, command, params, clients, channels, PASSWORD))
@@ -245,4 +235,10 @@ void Server::set_non_blocking(int fd)
 const std::map<int, Client> &Server::get_clients()
 {
 	return clients;
+}
+
+Channel *Server::add_channel(std::string name)
+{
+	channels.push_back(Channel(*this, name));
+	return &channels.back();
 }
