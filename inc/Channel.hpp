@@ -20,20 +20,22 @@ class Channel
     } t_modes;
 
 private:
+    Server &server;
     std::string _id;
     std::string topic;
     size_t userlimit;
     std::string password;
-    std::vector<Client *> users;     // TODO vector of int (key of server.clients)
-    std::vector<Client *> operators; // TODO vector of int (key of server.clients)
+    std::vector<int> user_keys;
+    std::vector<int> operator_keys;
     std::vector<std::string> invitelist;
 
 private:
     t_modes modes;
 
 public:
-    Channel(std::string name);
+    Channel(Server &server, std::string name);
     std::vector<Client *> getusers();
+    std::vector<Client *> getoperators();
     std::string getid();
     std::string gettopic();
     void changetopic(std::string topic);

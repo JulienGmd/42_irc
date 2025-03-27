@@ -25,6 +25,9 @@ private:
 	std::map<int, Client> clients;
 	std::vector<Channel> channels; // TODO map
 
+public:
+	const std::map<int, Client> &get_clients();
+
 private:
 	void start();
 	void loop();

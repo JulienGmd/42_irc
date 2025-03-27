@@ -12,15 +12,20 @@
 #include <unistd.h>
 #include <vector>
 
+// TODO join doit creer un channel si non existant
+// TODO ordre: pass->nick->user->welcome (peut pas faire USER sans avoir fait NICK)
+// TODO welcome message (https://modern.ircdocs.horse/#rplwelcome-001)
+// TODO ctrl+c clean exit
+
 Server::Server(int port, const std::string &password)
 	: PORT(port), PASSWORD(password), server_fd(-1), address(), clients(), channels()
 {
-	Channel a("#general");
+	Channel a(*this, "#general");
 	a.changetopic("On parle de tout et de rien");
 	a.changemode("+l");
 	a.changeul(1024);
 	this->channels.push_back(a);
-	Channel b("#actu");
+	Channel b(*this, "#actu");
 	b.changetopic("On parle d'actu ici");
 	b.changemode("+l");
 	b.changeul(1);
@@ -235,4 +240,9 @@ void Server::parse_command(const std::string &message, std::string &out_command,
 void Server::set_non_blocking(int fd)
 {
 	fcntl(fd, F_SETFL, O_NONBLOCK);
+}
+
+const std::map<int, Client> &Server::get_clients()
+{
+	return clients;
 }

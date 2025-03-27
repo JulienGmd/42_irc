@@ -1,8 +1,11 @@
 #include "Channel.hpp"
-#include <sstream>
+#include "Server.hpp"
 #include "_config.hpp"
 
-Channel::Channel(std::string name) : _id(name), topic(""), userlimit(0), password("")
+#include <sstream>
+
+Channel::Channel(Server &server, std::string name)
+    : server(server), _id(name), topic(""), userlimit(0), password("")
 {
     modes.i = 0;
     modes.t = 0;
@@ -28,7 +31,24 @@ std::string Channel::getmode()
 
 std::vector<Client *> Channel::getusers()
 {
-    return (users);
+    std::vector<Client *> users;
+    const std::map<int, Client> &clients = server.get_clients();
+
+    for (size_t i = 0; i < user_keys.size(); i++)
+        users.push_back((Client *)&clients.at(user_keys[i]));
+
+    return users;
+}
+
+std::vector<Client *> Channel::getoperators()
+{
+    std::vector<Client *> users;
+    const std::map<int, Client> &clients = server.get_clients();
+
+    for (size_t i = 0; i < operator_keys.size(); i++)
+        users.push_back((Client *)&clients.at(operator_keys[i]));
+
+    return users;
 }
 
 void Channel::changepw(std::string pw)
@@ -43,13 +63,9 @@ void Channel::changeul(size_t ul)
 
 bool Channel::hasuser(Client &usr)
 {
-    for (size_t i = 0; i < users.size(); i++)
-    {
-        if (users[i]->socket == usr.socket)
-        {
+    for (size_t i = 0; i < user_keys.size(); i++)
+        if (user_keys[i] == usr.socket)
             return true;
-        }
-    }
     return false;
 }
 
@@ -111,6 +127,7 @@ void Channel::applymode(const std::string &modes, const std::vector<std::string>
             std::string targetNick = params[paramIndex++];
             Client *targetUser = NULL;
 
+            std::vector<Client *> users = getusers();
             for (size_t j = 0; j < users.size(); j++)
             {
                 if (users[j]->nickname == targetNick)
@@ -193,7 +210,7 @@ void Channel::changetopic(std::string topic)
     std::string hostname = IRCHOSTNAME;
     std::string whobase = ":" + hostname + " 332 ";
     std::string whoreturn;
-    std::vector<Client *> vec = users;
+    std::vector<Client *> vec = getusers();
     for (size_t j = 0; j < vec.size(); j++)
     {
         whoreturn = whobase;
@@ -204,54 +221,50 @@ void Channel::changetopic(std::string topic)
 
 bool Channel::adduser(Client *user)
 {
-    for (size_t i = 0; i < users.size(); i++)
-    {
-        if (users[i]->nickname == user->nickname)
+    for (size_t i = 0; i < user_keys.size(); i++)
+        if (user_keys[i] == user->socket)
             return (0);
-    }
-    users.push_back(user);
+    user_keys.push_back(user->socket);
     return (1);
 }
 
 bool Channel::addoperator(Client *user)
 {
-    for (size_t i = 0; i < operators.size(); i++)
-        if (operators[i]->nickname == user->nickname)
+    for (size_t i = 0; i < operator_keys.size(); i++)
+        if (operator_keys[i] == user->socket)
             return (0);
-    operators.push_back(user);
+    operator_keys.push_back(user->socket);
     return (1);
 }
 
 void Channel::deluser(Client user)
 {
-    std::vector<Client *>::iterator it = users.begin();
-
-    for (size_t i = 0; it != users.end(); it++, i++)
-        if (users[i]->nickname == user.nickname)
+    for (std::vector<int>::iterator it = user_keys.begin(); it != user_keys.end(); it++)
+    {
+        if (*it == user.socket)
         {
-            std::cerr << "Erasing \'" << user.nickname << "\' from " << this->_id << std::endl;
-            users.erase(it);
-            return;
+            user_keys.erase(it);
+            break;
         }
+    }
 }
 
 void Channel::deloperator(Client user)
 {
-    std::vector<Client *>::iterator it = operators.begin();
-
-    for (size_t i = 0; it != operators.end(); it++, i++)
-        if (operators[i]->nickname == user.nickname)
+    for (std::vector<int>::iterator it = operator_keys.begin(); it != operator_keys.end(); it++)
+    {
+        if (*it == user.socket)
         {
-            std::cerr << "Erasing \'" << user.nickname << "\' from " << this->_id << " OPLIST" << std::endl;
-            operators.erase(it);
+            operator_keys.erase(it);
             break;
         }
+    }
 }
 
 bool Channel::isoperator(Client user)
 {
-    for (size_t i = 0; i < operators.size(); i++)
-        if (operators[i]->nickname == user.nickname)
+    for (size_t i = 0; i < operator_keys.size(); i++)
+        if (operator_keys[i] == user.socket)
             return (1);
     return (0);
 }
@@ -273,18 +286,18 @@ bool Channel::dispatchmessage(std::string msg)
 {
     if (!iscommand(msg))
     {
-        for (size_t i = 0; i < users.size(); i++)
-            if (users[i]->socket != users[i]->socket)
-                send(users[i]->socket, msg.c_str(), msg.length(), 0);
+        for (size_t i = 0; i < user_keys.size(); i++)
+            if (user_keys[i] != user_keys[i]) // TODO
+                send(user_keys[i], msg.c_str(), msg.length(), 0);
     }
     else
-        /*TODO : Execute commands*/ return (0);
+        return (0);
     return (1);
 }
 
 size_t Channel::getusercount()
 {
-    return (users.size());
+    return (user_keys.size());
 }
 
 size_t Channel::getuserlimit()
@@ -300,6 +313,7 @@ std::string Channel::getpw()
 std::string Channel::getnicklist()
 {
     std::ostringstream nicklist;
+    std::vector<Client *> users = getusers();
 
     for (size_t i = 0; i < users.size(); i++)
     {
