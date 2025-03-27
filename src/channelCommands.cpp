@@ -425,6 +425,22 @@ void mode(Client *usr, std::string params, std::vector<Channel> &channels)
     {
         if (channels[i].getid() == channelName)
         {
+            if (!channels[i].hasuser(*usr))
+            {
+                std::ostringstream error;
+                error << ":" << hostname << " 442 " << usr->nickname << " " << channelName << " :You're not on that channel\r\n";
+                send(usr->socket, error.str().c_str(), error.str().length(), MSG_NOSIGNAL);
+                return;
+            }
+
+            if (channels[i].getmode().find("t") != std::string::npos && !channels[i].isoperator(*usr))
+            {
+                std::ostringstream error;
+                error << ":" << hostname << " " << usr->nickname << " " << channelName << " :Not allowed\r\n";
+                send(usr->socket, error.str().c_str(), error.str().length(), MSG_NOSIGNAL);
+                return;
+            }
+
             // If no additional parameters, just return the current mode
             if (split.size() == 1)
             {
