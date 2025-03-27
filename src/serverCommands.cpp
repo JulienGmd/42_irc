@@ -126,9 +126,9 @@ void user_cmd(Client &client, const std::string &params, std::map<int, Client> &
     }
     client.username = newUsername;
 
-    // std::ostringstream msg_confirm;
-    // msg_confirm << ":" << IRCHOSTNAME << " 001 " << client.nickname << " :User is now " << newUsername << "\r\n";
-    // send(client.socket, msg_confirm.str().c_str(), msg_confirm.str().length(), 0);
+    std::ostringstream msg_confirm;
+    msg_confirm << ":" << IRCHOSTNAME << " 001 " << client.nickname << " :Welcome to the " << IRCHOSTNAME << " Network, " << client.nickname << "[!" << client.username << "@" << client.hostname << "]" << "\r\n";
+    send(client.socket, msg_confirm.str().c_str(), msg_confirm.str().length(), 0);
 }
 
 void invite_cmd(Client &client, const std::string &params, std::map<int, Client> &clients, std::vector<Channel> &channels)

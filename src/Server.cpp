@@ -13,7 +13,6 @@
 #include <vector>
 
 // TODO join doit creer un channel si non existant
-// TODO welcome message (https://modern.ircdocs.horse/#rplwelcome-001)
 // TODO ctrl+c clean exit
 
 Server::Server(int port, const std::string &password)
@@ -129,7 +128,6 @@ void Server::connect_client(fd_set &read_fds)
 	clients[new_socket].hostname = ip_str;
 
 	std::cout << "Client connected: " << new_socket << std::endl;
-	send(new_socket, "Welcome!\n", 9, 0);
 }
 
 std::map<int, Client>::iterator Server::disconnect_client(const std::map<int, Client>::iterator &it)
