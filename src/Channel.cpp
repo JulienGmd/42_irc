@@ -215,7 +215,7 @@ void Channel::changetopic(std::string topic)
     {
         whoreturn = whobase;
         whoreturn += vec[j]->nickname + " " + _id + " :" + topic + "\r\n";
-        send(vec[j]->socket, whoreturn.c_str(), whoreturn.length(), 0);
+        send(vec[j]->socket, whoreturn.c_str(), whoreturn.length(), MSG_NOSIGNAL);
     }
 }
 
@@ -288,7 +288,7 @@ bool Channel::dispatchmessage(std::string msg)
     {
         for (size_t i = 0; i < user_keys.size(); i++)
             if (user_keys[i] != user_keys[i]) // TODO
-                send(user_keys[i], msg.c_str(), msg.length(), 0);
+                send(user_keys[i], msg.c_str(), msg.length(), MSG_NOSIGNAL);
     }
     else
         return (0);

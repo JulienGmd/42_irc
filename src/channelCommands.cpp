@@ -108,23 +108,23 @@ void join_channel(Client *usr, Channel &channel)
     std::vector<Client *>::iterator it = users.begin();
     for (size_t j = 0; j < users.size(); j++)
     {
-        send((*it)->socket, joinMsg.str().c_str(), joinMsg.str().length(), 0);
+        send((*it)->socket, joinMsg.str().c_str(), joinMsg.str().length(), MSG_NOSIGNAL);
         it++;
     }
 
     std::ostringstream topicMsg;
     topicMsg << ":" << hostname << " 332 " << usr->nickname << " " << channelName << " :" << channel.gettopic() << "\r\n";
-    send(usr->socket, topicMsg.str().c_str(), topicMsg.str().length(), 0);
+    send(usr->socket, topicMsg.str().c_str(), topicMsg.str().length(), MSG_NOSIGNAL);
 
     for (size_t j = 0; j < users.size(); j++)
     {
         std::ostringstream namesMsg;
         namesMsg << ":" << hostname << " 353 " << users[j]->nickname << " = " << channelName << " :" << channel.getnicklist() << "\r\n";
-        send(users[j]->socket, namesMsg.str().c_str(), namesMsg.str().length(), 0);
+        send(users[j]->socket, namesMsg.str().c_str(), namesMsg.str().length(), MSG_NOSIGNAL);
 
         std::ostringstream endNamesMsg;
         endNamesMsg << ":" << hostname << " 366 " << users[j]->nickname << " " << channelName << " :End of /NAMES list\r\n";
-        send(users[j]->socket, endNamesMsg.str().c_str(), endNamesMsg.str().length(), 0);
+        send(users[j]->socket, endNamesMsg.str().c_str(), endNamesMsg.str().length(), MSG_NOSIGNAL);
     }
 }
 
@@ -138,7 +138,7 @@ void join(Client *usr, std::string params, std::vector<Channel> &channels, Serve
     {
         std::ostringstream error;
         error << ":" << hostname << " 461 " << usr->nickname << " JOIN :Not enough parameters\r\n";
-        send(usr->socket, error.str().c_str(), error.str().length(), 0);
+        send(usr->socket, error.str().c_str(), error.str().length(), MSG_NOSIGNAL);
         return;
     }
 
@@ -153,7 +153,7 @@ void join(Client *usr, std::string params, std::vector<Channel> &channels, Serve
             {
                 std::ostringstream error;
                 error << ":" << hostname << " 474 " << usr->nickname << " " << channelName << " :Cannot join channel\r\n";
-                send(usr->socket, error.str().c_str(), error.str().length(), 0);
+                send(usr->socket, error.str().c_str(), error.str().length(), MSG_NOSIGNAL);
                 return;
             }
             join_channel(usr, channels[i]);
@@ -217,7 +217,7 @@ void part(Client *usr, std::string params, std::vector<Channel> &channels)
 
     std::ostringstream fail;
     fail << ":" << hostname << " 403 " << usr->nickname << " " << channelName << " :No such channel\r\n";
-    send(usr->socket, fail.str().c_str(), fail.str().length(), 0);
+    send(usr->socket, fail.str().c_str(), fail.str().length(), MSG_NOSIGNAL);
 }
 
 // WHO Command
@@ -230,7 +230,7 @@ bool who(Client usr, std::string params, std::vector<Channel> &channels)
     {
         std::ostringstream error;
         error << ":" << hostname << " 461 " << usr.nickname << " WHO :Not enough parameters\r\n";
-        send(usr.socket, error.str().c_str(), error.str().length(), 0);
+        send(usr.socket, error.str().c_str(), error.str().length(), MSG_NOSIGNAL);
         return false;
     }
 
@@ -256,11 +256,11 @@ bool who(Client usr, std::string params, std::vector<Channel> &channels)
 
             std::ostringstream whobase;
             whobase << ":" << hostname << " 353 " << usr.nickname << " = " << split[0] << " :" << nicklist.str() << "\r\n";
-            send(usr.socket, whobase.str().c_str(), whobase.str().length(), 0);
+            send(usr.socket, whobase.str().c_str(), whobase.str().length(), MSG_NOSIGNAL);
 
             std::ostringstream whoend;
             whoend << ":" << hostname << " 366 " << usr.nickname << " " << split[0] << " :End of /NAMES list\r\n";
-            send(usr.socket, whoend.str().c_str(), whoend.str().length(), 0);
+            send(usr.socket, whoend.str().c_str(), whoend.str().length(), MSG_NOSIGNAL);
 
             return true;
         }
@@ -268,7 +268,7 @@ bool who(Client usr, std::string params, std::vector<Channel> &channels)
 
     std::ostringstream joinfail;
     joinfail << ":" << hostname << " 403 " << usr.nickname << " " << params << " :No such channel\r\n";
-    send(usr.socket, joinfail.str().c_str(), joinfail.str().length(), 0);
+    send(usr.socket, joinfail.str().c_str(), joinfail.str().length(), MSG_NOSIGNAL);
     return false;
 }
 
@@ -282,7 +282,7 @@ void kick(Client *usr, std::string params, std::vector<Channel> &channels)
     {
         std::ostringstream error;
         error << ":" << hostname << " 461 " << usr->nickname << " KICK :Not enough parameters\r\n";
-        send(usr->socket, error.str().c_str(), error.str().length(), 0);
+        send(usr->socket, error.str().c_str(), error.str().length(), MSG_NOSIGNAL);
         return;
     }
 
@@ -298,7 +298,7 @@ void kick(Client *usr, std::string params, std::vector<Channel> &channels)
             {
                 std::ostringstream fail;
                 fail << ":" << hostname << " 482 " << usr->nickname << " " << channelName << " :You're not channel operator\r\n";
-                send(usr->socket, fail.str().c_str(), fail.str().length(), 0);
+                send(usr->socket, fail.str().c_str(), fail.str().length(), MSG_NOSIGNAL);
                 return;
             }
 
@@ -315,7 +315,7 @@ void kick(Client *usr, std::string params, std::vector<Channel> &channels)
                     std::vector<Client *> userslist = channels[i].getusers();
                     for (size_t j = 0; j < userslist.size(); j++)
                     {
-                        send(userslist[j]->socket, kickMsg.str().c_str(), kickMsg.str().length(), 0);
+                        send(userslist[j]->socket, kickMsg.str().c_str(), kickMsg.str().length(), MSG_NOSIGNAL);
                     }
 
                     channels[i].deluser(*users[j]);
@@ -327,7 +327,7 @@ void kick(Client *usr, std::string params, std::vector<Channel> &channels)
             {
                 std::ostringstream error;
                 error << ":" << hostname << " 441 " << targetName << " " << channelName << " :They aren't on that channel\r\n";
-                send(usr->socket, error.str().c_str(), error.str().length(), 0);
+                send(usr->socket, error.str().c_str(), error.str().length(), MSG_NOSIGNAL);
             }
             return;
         }
@@ -335,7 +335,7 @@ void kick(Client *usr, std::string params, std::vector<Channel> &channels)
 
     std::ostringstream error;
     error << ":" << hostname << " 403 " << usr->nickname << " " << channelName << " :No such channel\r\n";
-    send(usr->socket, error.str().c_str(), error.str().length(), 0);
+    send(usr->socket, error.str().c_str(), error.str().length(), MSG_NOSIGNAL);
 }
 
 // TOPIC Command
@@ -348,7 +348,7 @@ void topic(Client *usr, std::string params, std::vector<Channel> &channels)
     {
         std::ostringstream error;
         error << ":" << hostname << " 461 " << usr->nickname << " TOPIC :Not enough parameters\r\n";
-        send(usr->socket, error.str().c_str(), error.str().length(), 0);
+        send(usr->socket, error.str().c_str(), error.str().length(), MSG_NOSIGNAL);
         return;
     }
 
@@ -363,7 +363,7 @@ void topic(Client *usr, std::string params, std::vector<Channel> &channels)
             {
                 std::ostringstream error;
                 error << ":" << hostname << " 482 " << usr->nickname << " " << channelName << " :You're not channel operator\r\n";
-                send(usr->socket, error.str().c_str(), error.str().length(), 0);
+                send(usr->socket, error.str().c_str(), error.str().length(), MSG_NOSIGNAL);
                 return;
             }
 
@@ -372,7 +372,7 @@ void topic(Client *usr, std::string params, std::vector<Channel> &channels)
                 // Send current topic
                 std::ostringstream topicMsg;
                 topicMsg << ":" << hostname << " 332 " << usr->nickname << " " << channelName << " :" << channels[i].gettopic() << "\r\n";
-                send(usr->socket, topicMsg.str().c_str(), topicMsg.str().length(), 0);
+                send(usr->socket, topicMsg.str().c_str(), topicMsg.str().length(), MSG_NOSIGNAL);
             }
             else
             {
@@ -385,7 +385,7 @@ void topic(Client *usr, std::string params, std::vector<Channel> &channels)
                 std::vector<Client *> users = channels[i].getusers();
                 for (size_t j = 0; j < users.size(); j++)
                 {
-                    send(users[j]->socket, topicChange.str().c_str(), topicChange.str().length(), 0);
+                    send(users[j]->socket, topicChange.str().c_str(), topicChange.str().length(), MSG_NOSIGNAL);
                 }
             }
             return;
@@ -394,7 +394,7 @@ void topic(Client *usr, std::string params, std::vector<Channel> &channels)
 
     std::ostringstream error;
     error << ":" << hostname << " 403 " << usr->nickname << " " << channelName << " :No such channel\r\n";
-    send(usr->socket, error.str().c_str(), error.str().length(), 0);
+    send(usr->socket, error.str().c_str(), error.str().length(), MSG_NOSIGNAL);
 }
 
 // MODE Command
@@ -408,7 +408,7 @@ void mode(Client *usr, std::string params, std::vector<Channel> &channels)
         // Missing parameters
         std::ostringstream error;
         error << ":" << hostname << " 461 " << usr->nickname << " MODE :Not enough parameters\r\n";
-        send(usr->socket, error.str().c_str(), error.str().length(), 0);
+        send(usr->socket, error.str().c_str(), error.str().length(), MSG_NOSIGNAL);
         return;
     }
 
@@ -422,11 +422,11 @@ void mode(Client *usr, std::string params, std::vector<Channel> &channels)
             {
                 std::ostringstream modeMsg;
                 modeMsg << ":" << hostname << " 324 " << usr->nickname << " " << channelName << " :" << channels[i].getmode() << "\r\n";
-                send(usr->socket, modeMsg.str().c_str(), modeMsg.str().length(), 0);
+                send(usr->socket, modeMsg.str().c_str(), modeMsg.str().length(), MSG_NOSIGNAL);
 
                 std::ostringstream endModeMsg;
                 endModeMsg << ":" << hostname << " 329 " << usr->nickname << " " << channelName << " :" << time(NULL) << "\r\n";
-                send(usr->socket, endModeMsg.str().c_str(), endModeMsg.str().length(), 0);
+                send(usr->socket, endModeMsg.str().c_str(), endModeMsg.str().length(), MSG_NOSIGNAL);
                 return;
             }
 
@@ -447,7 +447,7 @@ void mode(Client *usr, std::string params, std::vector<Channel> &channels)
             std::vector<Client *> users = channels[i].getusers();
             for (size_t j = 0; j < users.size(); j++)
             {
-                send(users[j]->socket, notifyMsg.str().c_str(), notifyMsg.str().length(), 0);
+                send(users[j]->socket, notifyMsg.str().c_str(), notifyMsg.str().length(), MSG_NOSIGNAL);
             }
 
             return;
@@ -457,7 +457,7 @@ void mode(Client *usr, std::string params, std::vector<Channel> &channels)
     // Channel not found
     std::ostringstream error;
     error << ":" << hostname << " 403 " << usr->nickname << " " << channelName << " :No such channel\r\n";
-    send(usr->socket, error.str().c_str(), error.str().length(), 0);
+    send(usr->socket, error.str().c_str(), error.str().length(), MSG_NOSIGNAL);
 }
 
 // PRIVMSG Command
@@ -470,7 +470,7 @@ bool privmsg(Client *usr, std::string params, std::vector<Channel> &channels)
     {
         std::ostringstream error;
         error << ":" << hostname << " 461 " << usr->nickname << " PRIVMSG :Not enough parameters\r\n";
-        send(usr->socket, error.str().c_str(), error.str().length(), 0);
+        send(usr->socket, error.str().c_str(), error.str().length(), MSG_NOSIGNAL);
         return true;
     }
     std::string target = split[0];
@@ -488,7 +488,7 @@ bool privmsg(Client *usr, std::string params, std::vector<Channel> &channels)
                 {
                     std::ostringstream error;
                     error << ":" << hostname << " 404 " << usr->nickname << " " << target << " :Cannot send to channel\r\n";
-                    send(usr->socket, error.str().c_str(), error.str().length(), 0);
+                    send(usr->socket, error.str().c_str(), error.str().length(), MSG_NOSIGNAL);
                     return true;
                 }
 
@@ -500,7 +500,7 @@ bool privmsg(Client *usr, std::string params, std::vector<Channel> &channels)
                 {
                     if (users[j]->socket != usr->socket)
                     {
-                        send(users[j]->socket, msgNotif.str().c_str(), msgNotif.str().length(), 0);
+                        send(users[j]->socket, msgNotif.str().c_str(), msgNotif.str().length(), MSG_NOSIGNAL);
                     }
                 }
                 return true;
@@ -509,7 +509,7 @@ bool privmsg(Client *usr, std::string params, std::vector<Channel> &channels)
 
         std::ostringstream error;
         error << ":" << hostname << " 403 " << usr->nickname << " " << target << " :No such channel\r\n";
-        send(usr->socket, error.str().c_str(), error.str().length(), 0);
+        send(usr->socket, error.str().c_str(), error.str().length(), MSG_NOSIGNAL);
         return true;
     }
     else
@@ -518,7 +518,7 @@ bool privmsg(Client *usr, std::string params, std::vector<Channel> &channels)
         // Message to another user (not implemented in this scope)
         // std::ostringstream error;
         // error << ":" << hostname << " 401 " << usr->nickname << " " << target << " :No such nick/channel\r\n";
-        // send(usr->socket, error.str().c_str(), error.str().length(), 0);
+        // send(usr->socket, error.str().c_str(), error.str().length(), MSG_NOSIGNAL);
     }
 }
 

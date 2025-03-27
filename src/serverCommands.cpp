@@ -35,7 +35,7 @@ bool pass_cmd(Client &client, const std::string &params, const std::string &PASS
 {
     if (params != PASSWORD)
     {
-        send(client.socket, "Invalid password\n", 17, 0);
+        send(client.socket, "Invalid password\n", 17, MSG_NOSIGNAL);
         return false;
     }
     client.has_set_server_password = true;
@@ -54,7 +54,7 @@ void nick_cmd(Client &client, const std::string &params, std::map<int, Client> &
     {
         std::ostringstream error;
         error << ":" << hostname << " " << ERR_NEEDMOREPARAMS << " " << client.nickname << " NICK :Not enough parameters\r\n";
-        send(client.socket, error.str().c_str(), error.str().length(), 0);
+        send(client.socket, error.str().c_str(), error.str().length(), MSG_NOSIGNAL);
         return;
     }
 
@@ -72,7 +72,7 @@ void nick_cmd(Client &client, const std::string &params, std::map<int, Client> &
         {
             std::ostringstream error;
             error << ":" << hostname << " " << ERR_ALREADYREGISTERED << " " << client.nickname << " NICK :NICK already exist\r\n";
-            send(client.socket, error.str().c_str(), error.str().length(), 0);
+            send(client.socket, error.str().c_str(), error.str().length(), MSG_NOSIGNAL);
             return;
         }
     }
@@ -81,7 +81,7 @@ void nick_cmd(Client &client, const std::string &params, std::map<int, Client> &
 
     // std::ostringstream msg_confirm;
     // msg_confirm << ":" << IRCHOSTNAME << " 001 " << newNickname << " :NICK is now " << newNickname << "\r\n";
-    // send(client.socket, msg_confirm.str().c_str(), msg_confirm.str().length(), 0);
+    // send(client.socket, msg_confirm.str().c_str(), msg_confirm.str().length(), MSG_NOSIGNAL);
 }
 
 void user_cmd(Client &client, const std::string &params, std::map<int, Client> &clients)
@@ -94,7 +94,7 @@ void user_cmd(Client &client, const std::string &params, std::map<int, Client> &
     {
         std::ostringstream error;
         error << ":" << hostname << " " << ERR_ALREADYREGISTERED << " " << client.nickname << " :You may not reregister\r\n";
-        send(client.socket, error.str().c_str(), error.str().length(), 0);
+        send(client.socket, error.str().c_str(), error.str().length(), MSG_NOSIGNAL);
     }
 
     std::vector<std::string> split = splitString(params, ' ');
@@ -103,7 +103,7 @@ void user_cmd(Client &client, const std::string &params, std::map<int, Client> &
     {
         std::ostringstream error;
         error << ":" << hostname << " " << ERR_NEEDMOREPARAMS << " " << client.nickname << " USER :Not enough parameters\r\n";
-        send(client.socket, error.str().c_str(), error.str().length(), 0);
+        send(client.socket, error.str().c_str(), error.str().length(), MSG_NOSIGNAL);
         return;
     }
 
@@ -120,7 +120,7 @@ void user_cmd(Client &client, const std::string &params, std::map<int, Client> &
         {
             std::ostringstream error;
             error << ":" << hostname << " " << ERR_ALREADYREGISTERED << " " << client.nickname << " USER :username already exist\r\n";
-            send(client.socket, error.str().c_str(), error.str().length(), 0);
+            send(client.socket, error.str().c_str(), error.str().length(), MSG_NOSIGNAL);
             return;
         }
     }
@@ -128,7 +128,7 @@ void user_cmd(Client &client, const std::string &params, std::map<int, Client> &
 
     std::ostringstream msg_confirm;
     msg_confirm << ":" << IRCHOSTNAME << " 001 " << client.nickname << " :Welcome to the " << IRCHOSTNAME << " Network, " << client.nickname << "[!" << client.username << "@" << client.hostname << "]" << "\r\n";
-    send(client.socket, msg_confirm.str().c_str(), msg_confirm.str().length(), 0);
+    send(client.socket, msg_confirm.str().c_str(), msg_confirm.str().length(), MSG_NOSIGNAL);
 }
 
 void invite_cmd(Client &client, const std::string &params, std::map<int, Client> &clients, std::vector<Channel> &channels)
@@ -144,7 +144,7 @@ void invite_cmd(Client &client, const std::string &params, std::map<int, Client>
     {
         std::ostringstream error;
         error << ":" << hostname << " " << ERR_NEEDMOREPARAMS << " " << client.nickname << " INVITE :Not enough parameters\r\n";
-        send(client.socket, error.str().c_str(), error.str().length(), 0);
+        send(client.socket, error.str().c_str(), error.str().length(), MSG_NOSIGNAL);
         return;
     }
 
@@ -165,7 +165,7 @@ void invite_cmd(Client &client, const std::string &params, std::map<int, Client>
     {
         std::ostringstream error;
         error << ":" << hostname << " " << ERR_NOSUCHCHANNEL << " " << client.nickname << " " << targetChannel << " :No such channel\r\n";
-        send(client.socket, error.str().c_str(), error.str().length(), 0);
+        send(client.socket, error.str().c_str(), error.str().length(), MSG_NOSIGNAL);
         return;
     }
 
@@ -174,7 +174,7 @@ void invite_cmd(Client &client, const std::string &params, std::map<int, Client>
     {
         std::ostringstream error;
         error << ":" << hostname << " " << ERR_NOTONCHANNEL << " " << client.nickname << " " << targetChannel << " :You're not on that channel\r\n";
-        send(client.socket, error.str().c_str(), error.str().length(), 0);
+        send(client.socket, error.str().c_str(), error.str().length(), MSG_NOSIGNAL);
         return;
     }
 
@@ -183,7 +183,7 @@ void invite_cmd(Client &client, const std::string &params, std::map<int, Client>
     {
         std::ostringstream error;
         error << ":" << hostname << " " << ERR_CHANOPRIVSNEEDED << " " << client.nickname << " " << targetChannel << " :You're not channel operator\r\n";
-        send(client.socket, error.str().c_str(), error.str().length(), 0);
+        send(client.socket, error.str().c_str(), error.str().length(), MSG_NOSIGNAL);
         return;
     }
 
@@ -204,21 +204,21 @@ void invite_cmd(Client &client, const std::string &params, std::map<int, Client>
     {
         std::ostringstream error;
         error << ":" << hostname << " " << ERR_NOSUCHNICK << " " << client.nickname << " " << targetUser << " :No such nick/channel\r\n";
-        send(client.socket, error.str().c_str(), error.str().length(), 0);
+        send(client.socket, error.str().c_str(), error.str().length(), MSG_NOSIGNAL);
         return;
     }
 
     // send invite msg channel
     std::ostringstream msg_invite;
     msg_invite << ":" << client.nickname << " INVITE " << targetUser << " " << targetChannel << "\r\n";
-    send(target->socket, msg_invite.str().c_str(), msg_invite.str().length(), 0);
+    send(target->socket, msg_invite.str().c_str(), msg_invite.str().length(), MSG_NOSIGNAL);
 
     channel->addinvited(*target);
 
     // confirm invite msg sent
     std::ostringstream msg_confirm;
     msg_confirm << ":" << hostname << " " << RPL_INVITING << "" << client.nickname << " " << targetUser << " " << targetChannel.substr(1) << " :Invite sent\r\n";
-    send(client.socket, msg_confirm.str().c_str(), msg_confirm.str().length(), 0);
+    send(client.socket, msg_confirm.str().c_str(), msg_confirm.str().length(), MSG_NOSIGNAL);
 }
 
 void prv_msg(Client &client, const std::string &params, std::map<int, Client> &clients)
@@ -245,7 +245,7 @@ void prv_msg(Client &client, const std::string &params, std::map<int, Client> &c
     {
         std::ostringstream error;
         error << ":" << hostname << " " << ERR_NOSUCHNICK << " " << client.nickname << " " << splitParams[0] << " :No such nick\r\n";
-        send(client.socket, error.str().c_str(), error.str().length(), 0);
+        send(client.socket, error.str().c_str(), error.str().length(), MSG_NOSIGNAL);
         return;
     }
     // <Client> PRIVMSG <Target> :<Message>
@@ -260,5 +260,5 @@ void prv_msg(Client &client, const std::string &params, std::map<int, Client> &c
     if (msg[0] == ':')
         msg = msg.substr(1, msg.size() - 1);
     msgNotif << ":" << client.nickname << " " << " PRIVMSG " << target->nickname << " :" << msg << "\r\n";
-    send(target->socket, msgNotif.str().c_str(), msgNotif.str().length(), 0);
+    send(target->socket, msgNotif.str().c_str(), msgNotif.str().length(), MSG_NOSIGNAL);
 }
