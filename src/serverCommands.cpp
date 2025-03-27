@@ -86,7 +86,7 @@ void nick_cmd(Client &client, const std::string &params, std::map<int, Client> &
 
 void user_cmd(Client &client, const std::string &params, std::map<int, Client> &clients)
 {
-    if (!client.has_set_server_password)
+    if (!client.has_set_server_password || client.nickname.empty())
         return;
 
     std::string hostname = IRCHOSTNAME;

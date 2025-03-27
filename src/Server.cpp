@@ -13,7 +13,6 @@
 #include <vector>
 
 // TODO join doit creer un channel si non existant
-// TODO ordre: pass->nick->user->welcome (peut pas faire USER sans avoir fait NICK)
 // TODO QUIT: segfault lorsqu'un client quit
 // TODO welcome message (https://modern.ircdocs.horse/#rplwelcome-001)
 // TODO ctrl+c clean exit
